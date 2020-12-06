@@ -46,7 +46,8 @@ def train(args):
     pretrain = True if pretrained_checkpoint_path else False
 
     #TODO вернуть путь до полного набора обработанных данных
-    hdf5_path = os.path.join(workspace, 'features', 'minidata_waveform.h5')
+
+    hdf5_path = os.path.join(workspace, 'features_emocon', 'waveform.h5')
     # hdf5_path = os.path.join(workspace, 'features', 'waveform.h5')
 
     checkpoints_dir = os.path.join(workspace, 'checkpoints', filename, 
