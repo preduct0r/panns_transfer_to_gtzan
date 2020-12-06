@@ -11,6 +11,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import torch.utils.data
  
 from config import (sample_rate, classes_num, mel_bins, fmin, fmax, window_size, 
     hop_size, window, pad_mode, center, ref, amin, top_db)
@@ -43,8 +44,10 @@ def train(args):
 
     loss_func = get_loss_func(loss_type)
     pretrain = True if pretrained_checkpoint_path else False
-    
-    hdf5_path = os.path.join(workspace, 'features', 'waveform.h5')
+
+    #TODO вернуть путь до полного набора обработанных данных
+    hdf5_path = os.path.join(workspace, 'features', 'minidata_waveform.h5')
+    # hdf5_path = os.path.join(workspace, 'features', 'waveform.h5')
 
     checkpoints_dir = os.path.join(workspace, 'checkpoints', filename, 
         'holdout_fold={}'.format(holdout_fold), model_type, 'pretrain={}'.format(pretrain), 
@@ -140,7 +143,7 @@ def train(args):
 
         # import crash
         # asdf
-        
+        torch.cuda.empty_cache()
         # Evaluate
         if iteration % 200 == 0 and iteration > 0:
             if resume_iteration > 0 and iteration == resume_iteration:
