@@ -77,8 +77,10 @@ def train(args):
     
     # Model
     Model = eval(model_type)
+
+    #TODO захардкодил classes num- это нехорошо
     model = Model(sample_rate, window_size, hop_size, mel_bins, fmin, fmax, 
-        classes_num, freeze_base)
+        9, freeze_base)
 
     # Statistics
     statistics_container = StatisticsContainer(statistics_path)
@@ -146,7 +148,7 @@ def train(args):
         # asdf
         torch.cuda.empty_cache()
         # Evaluate
-        if iteration % 200 == 0 and iteration > 0:
+        if iteration % 50 == 0 and iteration > 0:
             if resume_iteration > 0 and iteration == resume_iteration:
                 pass
             else:

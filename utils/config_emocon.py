@@ -1,5 +1,5 @@
 sample_rate = 32000
-clip_samples = sample_rate * 30
+clip_samples = sample_rate * 5
 
 mel_bins = 64
 fmin = 50
