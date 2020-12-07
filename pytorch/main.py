@@ -130,7 +130,7 @@ def train(args):
 
     # Optimizer
     optimizer = optim.Adam(model.parameters(), lr=learning_rate, betas=(0.9, 0.999),
-        eps=1e-08, weight_decay=0., amsgrad=True)
+        eps=1e-09, weight_decay=0., amsgrad=True)
 
     
     if 'mixup' in augmentation:
@@ -148,7 +148,7 @@ def train(args):
         # asdf
         torch.cuda.empty_cache()
         # Evaluate
-        if iteration % 50 == 0 and iteration > 0:
+        if iteration % 100 == 0 and iteration > 0:
             if resume_iteration > 0 and iteration == resume_iteration:
                 pass
             else:
