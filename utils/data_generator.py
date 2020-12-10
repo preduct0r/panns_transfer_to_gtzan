@@ -7,9 +7,18 @@ import os
 import glob
 import matplotlib.pyplot as plt
 import logging
+import random
 
 import config
 from utilities import int16_to_float32
+
+from torch.utils.data.sampler import Sampler
+
+is_torchvision_installed = True
+try:
+    import torchvision
+except ImportError:
+    is_torchvision_installed = False
 
 
 class GtzanDataset(object):
@@ -76,6 +85,70 @@ class Base(object):
         (self.audios_num, self.classes_num) = self.targets.shape
         logging.info('Training number: {}'.format(self.audios_num))
         logging.info('Load target time: {:.3f} s'.format(time.time() - load_time))
+
+
+class BalancedBatchSampler(Sampler):
+    """[]"""
+
+    def __init__(self, data, hdf5_path, holdout_fold):
+        """[]"""
+        self.labels = data['target']
+        self.dataset = dict()
+        self.balanced_max = 0
+
+        dataset = data['waveform']
+
+        with h5py.File(hdf5_path, 'r') as hf:
+            self.folds = hf['fold'][:].astype(np.float32)
+
+        self.indexes = np.where(self.folds != int(holdout_fold))[0]
+        dataset = dataset[self.indexes, :]
+        self.labels = self.labels[self.indexes]
+        self.audios_num = len(self.indexes)
+
+        # Save all the indices for all the classes
+        for idx in range(0, len(dataset)):
+            label = self._get_label(dataset, idx)
+            if label not in self.dataset:
+                self.dataset[label] = list()
+            self.dataset[label].append(idx)
+            self.balanced_max = (
+                len(self.dataset[label]) if len(self.dataset[label]) > self.balanced_max else self.balanced_max
+            )
+
+        # Oversample the classes with fewer elements than the max
+        for label in self.dataset:
+            while len(self.dataset[label]) < self.balanced_max:
+                self.dataset[label].append(random.choice(self.dataset[label]))
+        self.keys = list(self.dataset.keys())
+        self.currentkey = 0
+        self.indices = [-1] * len(self.keys)
+
+    def __iter__(self):
+        """[]"""
+        while self.indices[self.currentkey] < self.balanced_max - 1:
+            self.indices[self.currentkey] += 1
+            yield self.dataset[self.keys[self.currentkey]][self.indices[self.currentkey]]
+            self.currentkey = (self.currentkey + 1) % len(self.keys)
+        self.indices = [-1] * len(self.keys)
+
+    def _get_label(self, dataset, idx, labels=None):
+        """[]"""
+        if self.labels is not None:
+            return self.labels[idx].item()
+        else:
+            # Trying guessing
+            dataset_type = type(dataset)
+            if is_torchvision_installed and dataset_type is torchvision.datasets.MNIST:
+                return dataset.train_labels[idx].item()
+            elif is_torchvision_installed and dataset_type is torchvision.datasets.ImageFolder:
+                return dataset.imgs[idx][1]
+            else:
+                raise Exception("You should pass the tensor of labels to the constructor as second argument")
+
+    def __len__(self):
+        """[]"""
+        return self.balanced_max * len(self.keys)
 
 
 class TrainSampler(object):

@@ -12,6 +12,12 @@ def calculate_accuracy(y_true, y_score):
     accuracy = np.sum(np.argmax(y_true, axis=-1) == np.argmax(y_score, axis=-1)) / N
     return accuracy
 
+def calculate_recall(y_true, y_score):
+    N = y_true.shape[0]
+    recall = metrics.recall_score(np.argmax(y_true, axis=-1), np.argmax(y_score, axis=-1), average='macro')
+    return recall
+
+
 
 class Evaluator(object):
     def __init__(self, model):
@@ -30,7 +36,9 @@ class Evaluator(object):
 
         cm = metrics.confusion_matrix(np.argmax(target, axis=-1), np.argmax(clipwise_output, axis=-1), labels=None)
         accuracy = calculate_accuracy(target, clipwise_output)
+        recall = calculate_recall(target, clipwise_output)
+        print('Val recall: {}'.format(recall))
 
-        statistics = {'accuracy': accuracy}
+        statistics = {'accuracy': accuracy, 'recall':recall}
 
         return statistics
