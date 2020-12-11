@@ -37,8 +37,10 @@ class Evaluator(object):
         cm = metrics.confusion_matrix(np.argmax(target, axis=-1), np.argmax(clipwise_output, axis=-1), labels=None)
         accuracy = calculate_accuracy(target, clipwise_output)
         recall = calculate_recall(target, clipwise_output)
-        print('Val recall: {}'.format(recall))
+        # print('Val recall: {}'.format(recall))
+        # print('Val accuracy: {}'.format(accuracy))
+        # print(cm)
 
-        statistics = {'accuracy': accuracy, 'recall':recall}
+        statistics = {'accuracy': accuracy, 'recall':recall, 'cm':cm}
 
         return statistics

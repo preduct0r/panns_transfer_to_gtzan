@@ -118,7 +118,7 @@ def train(args):
 
     # Data loader
     train_loader = torch.utils.data.DataLoader(dataset=dataset, 
-        batch_sampler=BalancedBatchSampler(dataset, hdf5_path, holdout_fold), collate_fn=collate_fn,
+        batch_sampler=train_sampler, collate_fn=collate_fn,
         num_workers=num_workers, pin_memory=True)
 
     validate_loader = torch.utils.data.DataLoader(dataset=dataset, 
@@ -159,6 +159,9 @@ def train(args):
 
                 statistics = evaluator.evaluate(validate_loader)
                 logging.info('Validate accuracy: {:.3f}'.format(statistics['accuracy']))
+                logging.info('Validate recall: {:.3f}'.format(statistics['recall']))
+                logging.info(statistics['cm'])
+
 
                 statistics_container.append(iteration, statistics, 'validate')
                 statistics_container.dump()
@@ -211,7 +214,7 @@ def train(args):
 
         # loss
         loss = loss_func(batch_output_dict, batch_target_dict)
-        print(iteration, loss)
+        # print(iteration, loss)
 
         # Backward
         optimizer.zero_grad()
