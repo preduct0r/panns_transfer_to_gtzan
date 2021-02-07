@@ -136,17 +136,20 @@ def pack_audio_files_to_hdf5_emocon(args):
     # audio_names = sorted(audio_names)
     # audio_paths = sorted(audio_paths)
 
-    meta_df = pd.read_csv('/home/den/datasets/experiments/emocon_mult/meta.csv', sep=';')
-    meta_train_df = pd.read_csv('/home/den/datasets/experiments/emocon_mult/meta_train.csv', sep=';')
-    train_names = list(meta_train_df.cur_name)
+    meta_df = pd.read_csv('/home/den/Documents/meta_emo_for_panns.csv', sep=';')
+    idxs = []
+    for idx,i in enumerate(audio_names):
+        if i in meta_df.cur_name.values:
+            idxs.append(idx)
 
-
-
+    audio_names = np.array([audio_names[x] for x in idxs])
+    audio_paths = np.array([audio_paths[x] for x in idxs])
+    lb_to_idx
     meta_dict = {
-        'audio_name': np.array(audio_names),
-        'audio_path': np.array(audio_paths),
-        'target': np.array([int(meta_df[meta_df.cur_name==audio_name].arvalmix) for audio_name in audio_names]),
-        'fold': np.array([0 if audio_name in train_names else 1 for audio_name in audio_names])}
+        'audio_name': audio_names,
+        'audio_path': audio_paths,
+        'target': np.array([lb_to_idx.get(meta_df[meta_df.cur_name==audio_name].cur_label.values[0]) for audio_name in audio_names]),
+        'fold': np.arange(len(audio_names)) % 10 + 1}
 
     if mini_data:
         mini_num = 10

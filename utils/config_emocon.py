@@ -14,7 +14,7 @@ ref = 1.0
 amin = 1e-10
 top_db = None
 
-labels = [0,1,2,3,4,5,6,7,8]
+labels = ['sad', 'ang', 'hap']
 
 lb_to_idx = {lb: idx for idx, lb in enumerate(labels)}
 idx_to_lb = {idx: lb for idx, lb in enumerate(labels)}
