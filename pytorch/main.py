@@ -177,16 +177,16 @@ def train(args):
                 train_bgn_time = time.time()
 
         # Save model 
-        if iteration % 2000 == 0 and iteration > 0:
-            checkpoint = {
-                'iteration': iteration, 
-                'model': model.module.state_dict()}
-
-            checkpoint_path = os.path.join(
-                checkpoints_dir, '{}_iterations.pth'.format(iteration))
-                
-            torch.save(checkpoint, checkpoint_path)
-            logging.info('Model saved to {}'.format(checkpoint_path))
+        # if iteration % 2000 == 0 and iteration > 0:
+        #     checkpoint = {
+        #         'iteration': iteration,
+        #         'model': model.module.state_dict()}
+        #
+        #     checkpoint_path = os.path.join(
+        #         checkpoints_dir, '{}_iterations.pth'.format(iteration))
+        #
+        #     torch.save(checkpoint, checkpoint_path)
+        #     logging.info('Model saved to {}'.format(checkpoint_path))
         
         if 'mixup' in augmentation:
             batch_data_dict['mixup_lambda'] = mixup_augmenter.get_lambda(len(batch_data_dict['waveform']))

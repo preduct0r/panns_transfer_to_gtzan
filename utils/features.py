@@ -163,7 +163,7 @@ def pack_audio_files_to_hdf5_emocon(args):
         'audio_name': audio_names,
         'audio_path': audio_paths,
         'target': np.array([lb_to_idx.get(meta_df[meta_df.cur_name==audio_name].cur_label.values[0]) for audio_name in audio_names]),
-        'fold': np.array([0 if audio_name in train_names else 1 for audio_name in audio_names])}
+        'fold': np.arange(len(audio_names)) % 10 + 1}
 
     if mini_data:
         mini_num = 10
