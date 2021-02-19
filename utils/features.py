@@ -29,42 +29,6 @@ def pad_truncate_sequence(x, max_len):
         return x[0 : max_len]
 
 
-def per_speaker_validation():
-    n_classes =3
-
-    groups = data_XY.pid.to_numpy()
-    logo_test = LeaveOneGroupOut()
-    lpgo_val = LeavePGroupsOut(n_groups=3) #Три участника идут на валидацию
-
-    for train_dev_idx, test_idx in logo_test.split(X, y, groups=groups):
-        sub_X = X[train_dev_idx]
-        sub_new_y = y[train_dev_idx]
-        sub_groups = groups[train_dev_idx]
-
-        for train_idx, dev_idx in lpgo_val.split(sub_X, sub_new_y, groups=sub_groups):
-            print("Train ids",sub_groups[train_idx])
-            print("Val ids", np.unique(sub_groups[dev_idx]))
-            print("Test ids", np.unique(groups[test_idx]))
-
-            train_y = sub_new_y[train_idx]
-            dev_y = sub_new_y[dev_idx]
-            test_y = y[test_idx]
-
-
-            # Class weights
-            class_weights = compute_class_weight("balanced", np.unique(train_y) ,train_y)
-            class_weights = dict(enumerate(class_weights))
-
-            # Noramlization
-            scaler = StandardScaler()
-
-            train_x_norm = scaler.fit_transform(sub_X[train_idx])
-            dev_x_norm = scaler.transform(sub_X[dev_idx])
-            test_x_norm = scaler.transform(X[test_idx])
-
-            break
-
-
 def pack_audio_files_to_hdf5(args):
 
     # Arguments & parameters
