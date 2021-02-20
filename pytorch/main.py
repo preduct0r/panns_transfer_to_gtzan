@@ -48,7 +48,7 @@ def train(args):
     #TODO вернуть путь до полного набора обработанных данных
 
     # hdf5_path = os.path.join(workspace, 'features_emocon', 'iemocap_emo_waveform.h5')
-    hdf5_path = os.path.join(workspace, 'features_emocon', 'emocon_emo_waveform.h5')
+    hdf5_path = os.path.join(workspace, 'features_interspeech', 'interspeech_waveform.h5')
     # hdf5_path = os.path.join(workspace, 'features', 'waveform.h5')
 
     checkpoints_dir = os.path.join(workspace, 'checkpoints', filename, 
