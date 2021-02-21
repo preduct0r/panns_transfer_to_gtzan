@@ -237,7 +237,7 @@ if __name__ == '__main__':
     parser_train = subparsers.add_parser('train')
     parser_train.add_argument('--dataset_dir', type=str, required=True, help='Directory of dataset.')
     parser_train.add_argument('--workspace', type=str, required=True, help='Directory of your workspace.')
-    parser_train.add_argument('--holdout_fold', type=str, choices=['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'], required=True)
+    parser_train.add_argument('--holdout_fold', type=str, choices=['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'], required=True)
     parser_train.add_argument('--model_type', type=str, required=True)
     parser_train.add_argument('--pretrained_checkpoint_path', type=str)
     parser_train.add_argument('--freeze_base', action='store_true', default=False)

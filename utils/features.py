@@ -77,16 +77,16 @@ def pack_audio_files_to_hdf5_interspeech(args):
     for name in audio_names:
         if 'train' in name:
             targets.append(int(meta_train_df[meta_train_df.filename==name].label))
-            folds.append(1)
+            folds.append('1')
         elif 'devel' in name:
             targets.append(int(meta_dev_df[meta_dev_df.filename==name].label))
-            folds.append(0)
+            folds.append('0')
 
     meta_dict = {
         'audio_name': audio_names,
         'audio_path': audio_paths,
-        'target': np.array(list(meta_train_df.label) + list(meta_dev_df.label)),
-        'fold': np.concatenate((np.ones(len(list(meta_train_df.label))), np.zeros(len(list(meta_dev_df.label)))))
+        'target': targets,
+        'fold': folds
     }
 
     audios_num = len(audio_names)
