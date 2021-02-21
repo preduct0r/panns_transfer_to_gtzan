@@ -51,10 +51,9 @@ def train(args):
     hdf5_path = os.path.join(workspace, 'features_interspeech', 'interspeech_waveform.h5')
     # hdf5_path = os.path.join(workspace, 'features', 'waveform.h5')
 
-    checkpoints_dir = os.path.join(workspace, 'checkpoints', filename, 
-        'holdout_fold={}'.format(holdout_fold), model_type, 'pretrain={}'.format(pretrain), 
-        'loss_type={}'.format(loss_type), 'augmentation={}'.format(augmentation),
-         'batch_size={}'.format(batch_size), 'freeze_base={}'.format(freeze_base))
+    checkpoints_dir = os.path.join(workspace, 'checkpoints', 'interspeech', 'augmentation={}'.format(augmentation),
+                                   'batch_size={}'.format(batch_size),
+                                   )
     create_folder(checkpoints_dir)
 
     statistics_path = os.path.join(workspace, 'statistics', filename, 
@@ -141,7 +140,7 @@ def train(args):
     evaluator = Evaluator(model=model)
     
     train_bgn_time = time.time()
-    
+    best_recall = 0
     # Train on mini batches
     for batch_data_dict in train_loader:
 
@@ -159,9 +158,25 @@ def train(args):
                 train_fin_time = time.time()
 
                 statistics = evaluator.evaluate(validate_loader)
-                logging.info('Validate accuracy: {:.3f}'.format(statistics['accuracy']))
+                logging.info('Validate precision: {:.3f}'.format(statistics['precision']))
                 logging.info('Validate recall: {:.3f}'.format(statistics['recall']))
-                logging.info(statistics['cm'])
+                logging.info('Validate f_score: {:.3f}'.format(statistics['f_score']))
+                logging.info('\n'+ str(statistics['cm']))
+
+                if statistics['recall']>0.7 and statistics['recall']>best_recall:
+                    best_recall = statistics['recall']
+                    #Save model
+                    checkpoint = {
+                        'iteration': iteration,
+                        'model': model.module.state_dict()}
+
+                    checkpoint_path = os.path.join(
+                        checkpoints_dir, 'best_model.pth')
+
+                    torch.save(checkpoint, checkpoint_path)
+                    logging.info('Model saved to {}'.format(checkpoint_path))
+
+
 
 
                 statistics_container.append(iteration, statistics, 'validate')
@@ -176,18 +191,7 @@ def train(args):
 
                 train_bgn_time = time.time()
 
-        # Save model 
-        # if iteration % 2000 == 0 and iteration > 0:
-        #     checkpoint = {
-        #         'iteration': iteration,
-        #         'model': model.module.state_dict()}
-        #
-        #     checkpoint_path = os.path.join(
-        #         checkpoints_dir, '{}_iterations.pth'.format(iteration))
-        #
-        #     torch.save(checkpoint, checkpoint_path)
-        #     logging.info('Model saved to {}'.format(checkpoint_path))
-        
+
         if 'mixup' in augmentation:
             batch_data_dict['mixup_lambda'] = mixup_augmenter.get_lambda(len(batch_data_dict['waveform']))
         
@@ -227,7 +231,7 @@ def train(args):
             break 
 
         iteration += 1
-        
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Example of parser. ')
