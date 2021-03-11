@@ -43,10 +43,8 @@ def pack_audio_files_to_hdf5_interspeech(args):
     # Paths
     audios_dir = os.path.join(dataset_dir, 'wav')
 
-    if mini_data:
-        packed_hdf5_path = os.path.join(workspace, 'features_interspeech', 'minidata_waveform.h5')
-    else:
-        packed_hdf5_path = os.path.join(workspace, 'features_interspeech_final', 'interspeech_waveform.h5')
+
+    packed_hdf5_path = os.path.join(workspace, 'features_interspeech_final', 'interspeech_waveform_test.h5')
     create_folder(os.path.dirname(packed_hdf5_path))
 
     (audio_names, audio_paths) = traverse_folder(audios_dir)
@@ -67,20 +65,18 @@ def pack_audio_files_to_hdf5_interspeech(args):
             audio_names_without_test.append(name)
             flag=True
         if not flag:
-            audio_names_test.append(path)
+            audio_paths_test.append(path)
             audio_names_test.append(name)
 
-    audio_names = audio_names_without_test
-    audio_paths = audio_paths_without_test
+    audio_names = audio_names_test
+    audio_paths = audio_paths_test
 
     targets, folds = [], []
     for name in audio_names:
-        if 'train' in name:
-            targets.append(int(meta_train_df[meta_train_df.filename==name].label))
-            folds.append('1')
-        elif 'devel' in name:
-            targets.append(int(meta_dev_df[meta_dev_df.filename==name].label))
-            folds.append('1')
+        if 'test' in name:
+            targets.append(-1)
+            folds.append('0')
+
 
     meta_dict = {
         'audio_name': audio_names,
