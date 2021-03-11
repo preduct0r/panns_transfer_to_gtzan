@@ -46,7 +46,7 @@ def pack_audio_files_to_hdf5_interspeech(args):
     if mini_data:
         packed_hdf5_path = os.path.join(workspace, 'features_interspeech', 'minidata_waveform.h5')
     else:
-        packed_hdf5_path = os.path.join(workspace, 'features_interspeech', 'interspeech_waveform.h5')
+        packed_hdf5_path = os.path.join(workspace, 'features_interspeech_final', 'interspeech_waveform.h5')
     create_folder(os.path.dirname(packed_hdf5_path))
 
     (audio_names, audio_paths) = traverse_folder(audios_dir)
@@ -80,7 +80,7 @@ def pack_audio_files_to_hdf5_interspeech(args):
             folds.append('1')
         elif 'devel' in name:
             targets.append(int(meta_dev_df[meta_dev_df.filename==name].label))
-            folds.append('0')
+            folds.append('1')
 
     meta_dict = {
         'audio_name': audio_names,
