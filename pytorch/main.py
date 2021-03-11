@@ -48,10 +48,10 @@ def train(args):
     #TODO вернуть путь до полного набора обработанных данных
 
     # hdf5_path = os.path.join(workspace, 'features_emocon', 'iemocap_emo_waveform.h5')
-    hdf5_path = os.path.join(workspace, 'features_interspeech', 'interspeech_waveform.h5')
+    hdf5_path = os.path.join(workspace, 'features_interspeech_final', 'interspeech_waveform.h5')
     # hdf5_path = os.path.join(workspace, 'features', 'waveform.h5')
 
-    checkpoints_dir = os.path.join(workspace, 'checkpoints', 'interspeech', 'augmentation={}'.format(augmentation),
+    checkpoints_dir = os.path.join(workspace, 'checkpoints', 'interspeech_final', 'augmentation={}'.format(augmentation),
                                    'batch_size={}'.format(batch_size),
                                    )
     create_folder(checkpoints_dir)
@@ -148,49 +148,17 @@ def train(args):
         # asdf
         torch.cuda.empty_cache()
         # Evaluate
-        if iteration % 100 == 0 and iteration > 0:
-            if resume_iteration > 0 and iteration == resume_iteration:
-                pass
-            else:
-                logging.info('------------------------------------')
-                logging.info('Iteration: {}'.format(iteration))
+        # Save model
+        if iteration % 2800 == 0 and iteration > 0:
+            checkpoint = {
+                'iteration': iteration,
+                'model': model.module.state_dict()}
 
-                train_fin_time = time.time()
+            checkpoint_path = os.path.join(
+                checkpoints_dir, '{}_iterations.pth'.format(iteration))
 
-                statistics = evaluator.evaluate(validate_loader)
-                logging.info('Validate precision: {:.3f}'.format(statistics['precision']))
-                logging.info('Validate recall: {:.3f}'.format(statistics['recall']))
-                logging.info('Validate f_score: {:.3f}'.format(statistics['f_score']))
-                logging.info('\n'+ str(statistics['cm']))
-
-                if statistics['recall']>0.7 and statistics['recall']>best_recall:
-                    best_recall = statistics['recall']
-                    #Save model
-                    checkpoint = {
-                        'iteration': iteration,
-                        'model': model.module.state_dict()}
-
-                    checkpoint_path = os.path.join(
-                        checkpoints_dir, 'best_model.pth')
-
-                    torch.save(checkpoint, checkpoint_path)
-                    logging.info('Model saved to {}'.format(checkpoint_path))
-
-
-
-
-                statistics_container.append(iteration, statistics, 'validate')
-                statistics_container.dump()
-
-                train_time = train_fin_time - train_bgn_time
-                validate_time = time.time() - train_fin_time
-
-                logging.info(
-                    'Train time: {:.3f} s, validate time: {:.3f} s'
-                    ''.format(train_time, validate_time))
-
-                train_bgn_time = time.time()
-
+            torch.save(checkpoint, checkpoint_path)
+            logging.info('Model saved to {}'.format(checkpoint_path))
 
         if 'mixup' in augmentation:
             batch_data_dict['mixup_lambda'] = mixup_augmenter.get_lambda(len(batch_data_dict['waveform']))
