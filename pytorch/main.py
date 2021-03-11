@@ -149,6 +149,8 @@ def train(args):
         torch.cuda.empty_cache()
         # Evaluate
         # Save model
+        if iteration % 100 == 0:
+            print(iteration)
         if iteration % 2800 == 0 and iteration > 0:
             checkpoint = {
                 'iteration': iteration,
