@@ -44,14 +44,3 @@ class Evaluator(object):
         clipwise_output = output_dict['clipwise_output']    # (audios_num, classes_num)
         target = output_dict['target']    # (audios_num, classes_num)
 
-        cm = metrics.confusion_matrix(np.argmax(target, axis=-1), np.argmax(clipwise_output, axis=-1), labels=None)
-        precision = calculate_precision(target, clipwise_output)
-        recall = calculate_recall(target, clipwise_output)
-        f_score = calculate_f_score(target, clipwise_output)
-        # print('Val recall: {}'.format(recall))
-        # print('Val accuracy: {}'.format(accuracy))
-        # print(cm)
-
-        statistics = {'precision': precision, 'recall':recall, 'f_score':f_score, 'cm':cm}
-
-        return statistics

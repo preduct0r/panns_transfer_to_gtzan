@@ -140,7 +140,7 @@ def train(args):
     evaluator = Evaluator(model=model)
     
     train_bgn_time = time.time()
-    best_recall = 0
+
     # Train on mini batches
     for batch_data_dict in train_loader:
 
@@ -148,10 +148,35 @@ def train(args):
         # asdf
         torch.cuda.empty_cache()
         # Evaluate
+        if iteration % 100 == 0 and iteration > 0:
+            if resume_iteration > 0 and iteration == resume_iteration:
+                pass
+            else:
+                logging.info('------------------------------------')
+                logging.info('Iteration: {}'.format(iteration))
+
+                train_fin_time = time.time()
+
+                statistics = evaluator.evaluate(validate_loader)
+                logging.info('Validate accuracy: {:.3f}'.format(statistics['accuracy']))
+                logging.info('Validate recall: {:.3f}'.format(statistics['recall']))
+                logging.info(statistics['cm'])
+
+
+                statistics_container.append(iteration, statistics, 'validate')
+                statistics_container.dump()
+
+                train_time = train_fin_time - train_bgn_time
+                validate_time = time.time() - train_fin_time
+
+                logging.info(
+                    'Train time: {:.3f} s, validate time: {:.3f} s'
+                    ''.format(train_time, validate_time))
+
+                train_bgn_time = time.time()
+
         # Save model
-        if iteration % 100 == 0:
-            print(iteration)
-        if iteration % 2800 == 0 and iteration > 0:
+        if iteration % 2000 == 0 and iteration > 0:
             checkpoint = {
                 'iteration': iteration,
                 'model': model.module.state_dict()}

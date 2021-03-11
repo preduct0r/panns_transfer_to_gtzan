@@ -83,101 +83,24 @@ def train(args):
 
     dataset = GtzanDataset()
 
-    # Data generator
-    train_sampler = TrainSampler(
-        hdf5_path=hdf5_path,
-        holdout_fold=holdout_fold,
-        batch_size=batch_size * 2 if 'mixup' in augmentation else batch_size)
-
     validate_sampler = EvaluateSampler(
         hdf5_path=hdf5_path,
         holdout_fold=holdout_fold,
         batch_size=batch_size)
 
-    # Data loader
-    train_loader = torch.utils.data.DataLoader(dataset=dataset,
-                                               batch_sampler=train_sampler, collate_fn=collate_fn,
-                                               num_workers=num_workers, pin_memory=True)
-
     validate_loader = torch.utils.data.DataLoader(dataset=dataset,
                                                   batch_sampler=validate_sampler, collate_fn=collate_fn,
                                                   num_workers=num_workers, pin_memory=True)
-
     if 'cuda' in device:
         model.to(device)
-
-    # Optimizer
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate, betas=(0.9, 0.999),
-                           eps=1e-09, weight_decay=0., amsgrad=True)
-
-    if 'mixup' in augmentation:
-        mixup_augmenter = Mixup(mixup_alpha=1.)
 
     # Evaluator
     evaluator = Evaluator(model=model)
 
-    train_bgn_time = time.time()
-    best_recall = 0
-    # Train on mini batches
-    for batch_data_dict in train_loader:
+    evaluator.evaluate(validate_loader)
 
-        # import crash
-        # asdf
-        torch.cuda.empty_cache()
-        # Evaluate
-        # Save model
-        if iteration % 100 == 0:
-            print(iteration)
-        if iteration % 2800 == 0 and iteration > 0:
-            checkpoint = {
-                'iteration': iteration,
-                'model': model.module.state_dict()}
+    print('here')
 
-            checkpoint_path = os.path.join(
-                checkpoints_dir, '{}_iterations.pth'.format(iteration))
-
-            torch.save(checkpoint, checkpoint_path)
-            logging.info('Model saved to {}'.format(checkpoint_path))
-
-        if 'mixup' in augmentation:
-            batch_data_dict['mixup_lambda'] = mixup_augmenter.get_lambda(len(batch_data_dict['waveform']))
-
-        # Move data to GPU
-        for key in batch_data_dict.keys():
-            batch_data_dict[key] = move_data_to_device(batch_data_dict[key], device)
-
-        # Train
-        model.train()
-
-        if 'mixup' in augmentation:
-            batch_output_dict = model(batch_data_dict['waveform'],
-                                      batch_data_dict['mixup_lambda'])
-            """{'clipwise_output': (batch_size, classes_num), ...}"""
-
-            batch_target_dict = {'target': do_mixup(batch_data_dict['target'],
-                                                    batch_data_dict['mixup_lambda'])}
-            """{'target': (batch_size, classes_num)}"""
-        else:
-            batch_output_dict = model(batch_data_dict['waveform'], None)
-            """{'clipwise_output': (batch_size, classes_num), ...}"""
-
-            batch_target_dict = {'target': batch_data_dict['target']}
-            """{'target': (batch_size, classes_num)}"""
-
-        # loss
-        loss = loss_func(batch_output_dict, batch_target_dict)
-        # print(iteration, loss)
-
-        # Backward
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-        # Stop learning
-        if iteration == stop_iteration:
-            break
-
-        iteration += 1
 
 
 if __name__ == '__main__':
