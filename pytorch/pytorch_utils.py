@@ -58,7 +58,7 @@ def forward(model, generator, return_input=False,
 
     # Forward data to a model in mini-batches
     for n, batch_data_dict in enumerate(generator):
-        print(n)
+        # print(n)
         batch_waveform = move_data_to_device(batch_data_dict['waveform'], device)
         
         with torch.no_grad():
