@@ -194,7 +194,7 @@ def train(args):
             df.loc[:, 'filename'] = output_dict['audio_name']
             df.loc[:, 'label'] = output_dict['target']
 
-            df.loc[:, [0, 1, 2]] = np.vstack(output_dict['clipwise_output'])
+            df.loc[:, [0, 1, 2]] = np.vstack(output_dict['clipwise_output2'])
             df.to_csv('/home/den/Documents/df_dev_prob.csv', index=False, sep=',')
 
 
