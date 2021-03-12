@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import logging
 from sklearn import metrics
 
@@ -42,5 +43,9 @@ class Evaluator(object):
             return_target=True)
 
         clipwise_output = output_dict['clipwise_output']    # (audios_num, classes_num)
+        df = pd.DataFrame(columns=[0,1,2], data=np.vstack(clipwise_output))
+        df.to_csv('/home/den/Documents/clipwise_output.csv', index=False)
         target = output_dict['target']    # (audios_num, classes_num)
+
+        return clipwise_output
 

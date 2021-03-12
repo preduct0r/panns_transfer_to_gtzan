@@ -97,7 +97,8 @@ def train(args):
     # Evaluator
     evaluator = Evaluator(model=model)
 
-    evaluator.evaluate(validate_loader)
+    clipwise_output = evaluator.evaluate(validate_loader)
+
 
     print('here')
 
