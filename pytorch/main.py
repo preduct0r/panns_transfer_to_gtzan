@@ -7,6 +7,7 @@ import time
 import logging
 import matplotlib.pyplot as plt
 import pandas as pd
+import random
 
 import torch
 import torch.nn as nn
@@ -27,7 +28,7 @@ from evaluate import Evaluator
 # для воспроизводимости результатов
 # random.seed(0)
 np.random.seed(0)
-torch.manual_seed(1000)
+torch.manual_seed(500)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 os.environ["PYTHONHASHSEED"] = str(24)
@@ -99,15 +100,7 @@ def train(args):
         logging.info('Load pretrained model from {}'.format(pretrained_checkpoint_path))
         model.load_from_pretrain(pretrained_checkpoint_path)
 
-    if resume_iteration:
-        resume_checkpoint_path = os.path.join(checkpoints_dir, '{}_iterations.pth'.format(resume_iteration))
-        logging.info('Load resume model from {}'.format(resume_checkpoint_path))
-        resume_checkpoint = torch.load(resume_checkpoint_path)
-        model.load_state_dict(resume_checkpoint['model'])
-        statistics_container.load_state_dict(resume_iteration)
-        iteration = resume_checkpoint['iteration']
-    else:
-        iteration = 0
+
 
     # Parallel
     print('GPU number: {}'.format(torch.cuda.device_count()))
@@ -150,94 +143,100 @@ def train(args):
     evaluator = Evaluator(model=model)
     
     train_bgn_time = time.time()
-    best_recall = 0
+    best_mean = 0
     # Train on mini batches
-    for batch_data_dict in train_loader:
+    while True:
+        num = random.randint(0, 1000000000)
+        torch.manual_seed(num)
+        iteration = 0
 
-        # import crash
-        # asdf
-        torch.cuda.empty_cache()
-        # Evaluate
-        if iteration % 100 == 0 and iteration > 0:
-            if resume_iteration > 0 and iteration == resume_iteration:
-                pass
+        for batch_data_dict in train_loader:
+
+
+            # import crash
+            # asdf
+            torch.cuda.empty_cache()
+            # Evaluate
+            if iteration % 100 == 0 and iteration > 0:
+                if iteration >7000
+                    break
+                else:
+                    logging.info('------------------------------------')
+                    logging.info('Iteration: {}'.format(iteration))
+
+                    train_fin_time = time.time()
+
+                    statistics, _ = evaluator.evaluate(validate_loader)
+                    logging.info('Validate precision: {:.3f}'.format(statistics['precision']))
+                    logging.info('Validate recall: {:.3f}'.format(statistics['recall']))
+                    logging.info('Validate f_score: {:.3f}'.format(statistics['f_score']))
+                    logging.info('\n'+ str(statistics['cm']))
+
+                    cand_mean = (statistics['recall'] + statistics['precision'] + statistics['f_score']) / 3.
+                    if cand_mean > best_mean:
+                        best_mean = cand_mean
+                        with open('/home/den/Documents/random_search.txt', 'a') as f:
+                            f.write('recall: {}\n'.format(statistics['recall']))
+                            f.write('precision: {}\n'.format(statistics['precision']))
+                            f.write('fscore: {}\n'.format(statistics['f_score']))
+                            f.write('randint: {}\n'.format(num))
+                            f.write('iteration: {}\n'.format(iteration))
+
+
+
+
+            # if iteration == 1400:
+            #
+            #     _, output_dict = evaluator.evaluate(validate_loader)
+            #
+            #     df = pd.DataFrame(columns=['filename','label', 0, 1, 2])
+            #     df.loc[:, 'filename'] = output_dict['audio_name']
+            #     df.loc[:, 'label'] = output_dict['target']
+            #
+            #     df.loc[:, [0, 1, 2]] = np.vstack(output_dict['clipwise_output2'])
+            #     df.to_csv('/home/den/Documents/df_dev_prob.csv', index=False, sep=',')
+
+
+
+            if 'mixup' in augmentation:
+                batch_data_dict['mixup_lambda'] = mixup_augmenter.get_lambda(len(batch_data_dict['waveform']))
+
+            # Move data to GPU
+            for key in batch_data_dict.keys():
+                batch_data_dict[key] = move_data_to_device(batch_data_dict[key], device)
+
+            # Train
+            model.train()
+
+            if 'mixup' in augmentation:
+                batch_output_dict = model(batch_data_dict['waveform'],
+                    batch_data_dict['mixup_lambda'])
+                """{'clipwise_output': (batch_size, classes_num), ...}"""
+
+                batch_target_dict = {'target': do_mixup(batch_data_dict['target'],
+                    batch_data_dict['mixup_lambda'])}
+                """{'target': (batch_size, classes_num)}"""
             else:
-                logging.info('------------------------------------')
-                logging.info('Iteration: {}'.format(iteration))
+                batch_output_dict = model(batch_data_dict['waveform'], None)
+                """{'clipwise_output': (batch_size, classes_num), ...}"""
 
-                train_fin_time = time.time()
+                batch_target_dict = {'target': batch_data_dict['target']}
+                """{'target': (batch_size, classes_num)}"""
 
-                statistics, _ = evaluator.evaluate(validate_loader)
-                logging.info('Validate precision: {:.3f}'.format(statistics['precision']))
-                logging.info('Validate recall: {:.3f}'.format(statistics['recall']))
-                logging.info('Validate f_score: {:.3f}'.format(statistics['f_score']))
-                logging.info('\n'+ str(statistics['cm']))
+            # loss
+            loss = loss_func(batch_output_dict, batch_target_dict)
+            # print(iteration, loss)
 
-                if statistics['recall']>0.7 and statistics['recall']>best_recall:
-                    best_recall = statistics['recall']
-                    #Save model
-                    checkpoint = {
-                        'iteration': iteration,
-                        'model': model.module.state_dict()}
+            # Backward
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
-                    checkpoint_path = os.path.join(
-                        checkpoints_dir, 'best_model.pth')
+            # Stop learning
+            if iteration == stop_iteration:
+                break
 
-                    torch.save(checkpoint, checkpoint_path)
-                    logging.info('Model saved to {}'.format(checkpoint_path))
-
-        if iteration == 1400:
-
-            _, output_dict = evaluator.evaluate(validate_loader)
-
-            df = pd.DataFrame(columns=['filename','label', 0, 1, 2])
-            df.loc[:, 'filename'] = output_dict['audio_name']
-            df.loc[:, 'label'] = output_dict['target']
-
-            df.loc[:, [0, 1, 2]] = np.vstack(output_dict['clipwise_output2'])
-            df.to_csv('/home/den/Documents/df_dev_prob.csv', index=False, sep=',')
-
-
-
-        if 'mixup' in augmentation:
-            batch_data_dict['mixup_lambda'] = mixup_augmenter.get_lambda(len(batch_data_dict['waveform']))
-        
-        # Move data to GPU
-        for key in batch_data_dict.keys():
-            batch_data_dict[key] = move_data_to_device(batch_data_dict[key], device)
-        
-        # Train
-        model.train()
-
-        if 'mixup' in augmentation:
-            batch_output_dict = model(batch_data_dict['waveform'], 
-                batch_data_dict['mixup_lambda'])
-            """{'clipwise_output': (batch_size, classes_num), ...}"""
-
-            batch_target_dict = {'target': do_mixup(batch_data_dict['target'], 
-                batch_data_dict['mixup_lambda'])}
-            """{'target': (batch_size, classes_num)}"""
-        else:
-            batch_output_dict = model(batch_data_dict['waveform'], None)
-            """{'clipwise_output': (batch_size, classes_num), ...}"""
-
-            batch_target_dict = {'target': batch_data_dict['target']}
-            """{'target': (batch_size, classes_num)}"""
-
-        # loss
-        loss = loss_func(batch_output_dict, batch_target_dict)
-        # print(iteration, loss)
-
-        # Backward
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-        # Stop learning
-        if iteration == stop_iteration:
-            break 
-
-        iteration += 1
+            iteration += 1
 
 
 if __name__ == '__main__':
