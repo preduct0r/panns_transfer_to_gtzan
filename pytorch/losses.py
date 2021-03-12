@@ -6,7 +6,8 @@ import pandas as pd
 
 def clip_nll(output_dict, target_dict):
     loss = target_dict['target'] * output_dict['clipwise_output']
-
+    print(target_dict['target'])
+    print(output_dict['clipwise_output'])
     meta_train_df = pd.read_csv('/home/den/datasets/iemocap/meta_train.csv', sep=';')
     weight = 100. /torch.tensor(meta_train_df.arvalmix.value_counts().sort_index().values).cuda()
     loss = - torch.mean(loss)

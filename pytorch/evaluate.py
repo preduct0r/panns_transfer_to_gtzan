@@ -42,9 +42,12 @@ class Evaluator(object):
             generator=data_loader, 
             return_target=True)
 
-        clipwise_output = output_dict['clipwise_output']    # (audios_num, classes_num)
-        df = pd.DataFrame(columns=[0,1,2], data=np.vstack(clipwise_output))
-        df.to_csv('/home/den/Documents/clipwise_output.csv', index=False)
+        clipwise_output = output_dict['clipwise_output'] # (audios_num, classes_num)
+        audio_names = output_dict['audio_name']
+        df = pd.DataFrame(columns=['filename',0,1,2])
+        df.loc[:,'filename'] = audio_names
+        df.loc[:,[0,1,2]] = np.vstack(clipwise_output)
+        df.to_csv('/home/den/Documents/clipwise_output.csv', index=False, sep=',')
         target = output_dict['target']    # (audios_num, classes_num)
 
         return clipwise_output
