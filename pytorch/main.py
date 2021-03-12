@@ -6,6 +6,7 @@ import argparse
 import time
 import logging
 import matplotlib.pyplot as plt
+import pandas as pd
 
 import torch
 import torch.nn as nn
@@ -157,7 +158,7 @@ def train(args):
 
                 train_fin_time = time.time()
 
-                statistics = evaluator.evaluate(validate_loader)
+                statistics, _ = evaluator.evaluate(validate_loader)
                 logging.info('Validate precision: {:.3f}'.format(statistics['precision']))
                 logging.info('Validate recall: {:.3f}'.format(statistics['recall']))
                 logging.info('Validate f_score: {:.3f}'.format(statistics['f_score']))
@@ -176,20 +177,17 @@ def train(args):
                     torch.save(checkpoint, checkpoint_path)
                     logging.info('Model saved to {}'.format(checkpoint_path))
 
+        if iteration % 2800 == 0 and iteration > 0:
 
+            _, output_dict = evaluator.evaluate(validate_loader)
 
+            df = pd.DataFrame(columns=['filename','label', 0, 1, 2])
+            df.loc[:, 'filename'] = output_dict['audio_name']
+            df.loc[:, 'label'] = output_dict['target']
 
-                statistics_container.append(iteration, statistics, 'validate')
-                statistics_container.dump()
+            df.loc[:, [0, 1, 2]] = np.vstack(output_dict['clipwise_output'])
+            df.to_csv('/home/den/Documents/df_dev_prob.csv', index=False, sep=',')
 
-                train_time = train_fin_time - train_bgn_time
-                validate_time = time.time() - train_fin_time
-
-                logging.info(
-                    'Train time: {:.3f} s, validate time: {:.3f} s'
-                    ''.format(train_time, validate_time))
-
-                train_bgn_time = time.time()
 
 
         if 'mixup' in augmentation:
