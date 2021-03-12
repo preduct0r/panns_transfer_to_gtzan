@@ -186,7 +186,7 @@ def train(args):
                     torch.save(checkpoint, checkpoint_path)
                     logging.info('Model saved to {}'.format(checkpoint_path))
 
-        if iteration % 2800 == 0 and iteration > 0:
+        if iteration == 1400:
 
             _, output_dict = evaluator.evaluate(validate_loader)
 
