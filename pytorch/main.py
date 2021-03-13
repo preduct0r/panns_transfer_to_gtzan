@@ -26,7 +26,7 @@ from evaluate import Evaluator
 # для воспроизводимости результатов
 # random.seed(0)
 np.random.seed(0)
-torch.manual_seed(1000)
+torch.manual_seed(729720439)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 os.environ["PYTHONHASHSEED"] = str(24)
@@ -160,7 +160,7 @@ def train(args):
         # Save model
         if iteration % 100 == 0:
             print(iteration)
-        if iteration % 1400 == 0 and iteration > 0:
+        if iteration % 1700 == 0 and iteration > 0:
             checkpoint = {
                 'iteration': iteration,
                 'model': model.module.state_dict()}
