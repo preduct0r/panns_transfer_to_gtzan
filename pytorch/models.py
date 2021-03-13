@@ -186,7 +186,7 @@ class Transfer_Cnn14(nn.Module):
 
     def load_from_pretrain(self, pretrained_checkpoint_path):
         checkpoint = torch.load(pretrained_checkpoint_path)
-        self.load_state_dict(checkpoint['model'])
+        self.base.load_state_dict(checkpoint['model'])
 
     def forward(self, input, mixup_lambda=None):
         """Input: (batch_size, data_length)
@@ -194,7 +194,10 @@ class Transfer_Cnn14(nn.Module):
         output_dict = self.base(input, mixup_lambda)
         embedding = output_dict['embedding']
 
-        clipwise_output =  torch.softmax(self.fc_transfer(embedding), dim=-1)
+        clipwise_output =  torch.log_softmax(self.fc_transfer(embedding), dim=-1)
         output_dict['clipwise_output'] = clipwise_output
- 
+
+        clipwise_output = torch.softmax(self.fc_transfer(embedding), dim=-1)
+        output_dict['clipwise_output2'] = clipwise_output
+
         return output_dict

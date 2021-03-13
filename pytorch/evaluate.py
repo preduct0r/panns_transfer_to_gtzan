@@ -43,12 +43,14 @@ class Evaluator(object):
             return_target=True)
 
         clipwise_output = output_dict['clipwise_output'] # (audios_num, classes_num)
-        audio_names = output_dict['audio_name']
-        df = pd.DataFrame(columns=['filename',0,1,2])
-        df.loc[:,'filename'] = audio_names
-        df.loc[:,[0,1,2]] = np.vstack(clipwise_output)
-        df.to_csv('/home/den/Documents/df_test_prob.csv', index=False, sep=',')
         target = output_dict['target']    # (audios_num, classes_num)
 
-        return clipwise_output
+        cm = metrics.confusion_matrix(np.argmax(target, axis=-1), np.argmax(clipwise_output, axis=-1), labels=None)
+        precision = calculate_precision(target, clipwise_output)
+        recall = calculate_recall(target, clipwise_output)
+        f_score = calculate_f_score(target, clipwise_output)
 
+
+        statistics = {'precision': precision, 'recall':recall, 'f_score':f_score, 'cm':cm}
+
+        return statistics, output_dict
