@@ -158,7 +158,7 @@ def train(args):
             torch.cuda.empty_cache()
             # Evaluate
             if iteration % 100 == 0 and iteration > 0:
-                if iteration >7000
+                if iteration >7000:
                     break
                 else:
                     logging.info('------------------------------------')
