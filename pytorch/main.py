@@ -176,7 +176,7 @@ def train(args):
                 train_bgn_time = time.time()
 
         # Save model
-        if iteration % 2000 == 0 and iteration > 0:
+        if iteration==1700:
             checkpoint = {
                 'iteration': iteration,
                 'model': model.module.state_dict()}

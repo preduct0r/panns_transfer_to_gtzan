@@ -42,89 +42,90 @@ def pack_audio_files_to_hdf5_interspeech(args):
 
     # Paths
     audios_dir = os.path.join(dataset_dir, 'wav')
-
-
-    packed_hdf5_path = os.path.join(workspace, 'features_interspeech_final', 'interspeech_waveform_test.h5')
-    create_folder(os.path.dirname(packed_hdf5_path))
-
     (audio_names, audio_paths) = traverse_folder(audios_dir)
-
-    # audio_names = sorted(audio_names)
-    # audio_paths = sorted(audio_paths)
 
     meta_train_df = pd.read_csv('/home/den/datasets/interspeech/lab/train.csv')
     meta_dev_df = pd.read_csv('/home/den/datasets/interspeech/lab/devel.csv')
-    meta_test_df = pd.read_csv('/home/den/datasets/interspeech/lab/test.csv')
+    meta_df = meta_train_df.append(meta_dev_df, ignore_index=True)
 
-    audio_names_without_test, audio_names_test = [], []
-    audio_paths_without_test, audio_paths_test = [], []
-    for name,path in zip(audio_names,audio_paths):
-        flag=False
+    audio_names_without_test = []
+    audio_paths_without_test = []
+    for name, path in zip(audio_names, audio_paths):
         if 'test' not in name:
             audio_paths_without_test.append(path)
             audio_names_without_test.append(name)
-            flag=True
-        if not flag:
-            audio_paths_test.append(path)
-            audio_names_test.append(name)
 
-    audio_names = audio_names_test
-    audio_paths = audio_paths_test
-
-    targets, folds = [], []
-    for name in audio_names:
-        if 'test' in name:
-            targets.append(-1)
-            folds.append('0')
+    audio_names = audio_names_without_test
+    audio_paths = audio_paths_without_test
+    idxs = list(range(len(audio_names)))
+    random.shuffle(idxs)
 
 
-    meta_dict = {
-        'audio_name': audio_names,
-        'audio_path': audio_paths,
-        'target': targets,
-        'fold': folds
-    }
 
-    audios_num = len(audio_names)
+    for i in range(4):
+        packed_hdf5_path = os.path.join(workspace, 'features_interspeech_final', 'interspeech_waveform_{}.h5'.format(i))
+        create_folder(os.path.dirname(packed_hdf5_path))
 
-    feature_time = time.time()
-    with h5py.File(packed_hdf5_path, 'w') as hf:
-        hf.create_dataset(
-            name='audio_name',
-            shape=(audios_num,),
-            dtype='S80')
+        cur_audio_names, cur_audio_paths, targets, folds = [], [], [], []
+        dev_idxs = idxs[i*int(len(idxs)/4.):(i+1)*int(len(idxs)/4.)]
 
-        hf.create_dataset(
-            name='waveform',
-            shape=(audios_num, clip_samples),
-            dtype=np.int16)
+        for idx in idxs:
+            targets.append(int(meta_df[meta_df.filename==audio_names[idx]].label))
+            cur_audio_names.append(audio_names[idx])
+            cur_audio_paths.append(audio_paths[idx])
+            if idx in dev_idxs:
+                folds.append('0')
+            else:
+                folds.append('1')
 
-        hf.create_dataset(
-            name='target',
-            shape=(audios_num, classes_num),
-            dtype=np.float32)
 
-        hf.create_dataset(
-            name='fold',
-            shape=(audios_num,),
-            dtype=np.int32)
+        meta_dict = {
+            'audio_name': cur_audio_names,
+            'audio_path': cur_audio_paths,
+            'target': targets,
+            'fold': folds
+        }
 
-        for n in range(audios_num):
-            print(n)
-            audio_name = meta_dict['audio_name'][n]
-            fold = meta_dict['fold'][n]
-            audio_path = meta_dict['audio_path'][n]
-            (audio, fs) = librosa.core.load(audio_path, sr=sample_rate, mono=True)
+        audios_num = len(cur_audio_names)
 
-            audio = pad_truncate_sequence(audio, clip_samples)
+        feature_time = time.time()
+        with h5py.File(packed_hdf5_path, 'w') as hf:
+            hf.create_dataset(
+                name='audio_name',
+                shape=(audios_num,),
+                dtype='S80')
 
-            hf['audio_name'][n] = audio_name.encode()
-            hf['waveform'][n] = float32_to_int16(audio)
-            hf['target'][n] = to_one_hot(meta_dict['target'][n], classes_num)
-            hf['fold'][n] = meta_dict['fold'][n]
+            hf.create_dataset(
+                name='waveform',
+                shape=(audios_num, clip_samples),
+                dtype=np.int16)
 
-    print('Write hdf5 to {}'.format(packed_hdf5_path))
-    print('Time: {:.3f} s'.format(time.time() - feature_time))
+            hf.create_dataset(
+                name='target',
+                shape=(audios_num, classes_num),
+                dtype=np.float32)
+
+            hf.create_dataset(
+                name='fold',
+                shape=(audios_num,),
+                dtype=np.int32)
+
+            for n in range(audios_num):
+                # print(n)
+                audio_name = meta_dict['audio_name'][n]
+                fold = meta_dict['fold'][n]
+                audio_path = meta_dict['audio_path'][n]
+                (audio, fs) = librosa.core.load(audio_path, sr=sample_rate, mono=True)
+
+                audio = pad_truncate_sequence(audio, clip_samples)
+
+                hf['audio_name'][n] = audio_name.encode()
+                hf['waveform'][n] = float32_to_int16(audio)
+                hf['target'][n] = to_one_hot(meta_dict['target'][n], classes_num)
+                hf['fold'][n] = meta_dict['fold'][n]
+
+        print('Write hdf5 to {}'.format(packed_hdf5_path))
+        print('Time: {:.3f} s'.format(time.time() - feature_time))
 
 
 if __name__ == '__main__':
