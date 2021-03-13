@@ -69,6 +69,9 @@ def forward(model, generator, return_input=False,
 
         append_to_dict(output_dict, 'clipwise_output', 
             batch_output['clipwise_output'].data.cpu().numpy())
+
+        append_to_dict(output_dict, 'clipwise_output2',
+                       batch_output['clipwise_output2'].data.cpu().numpy())
             
         if return_input:
             append_to_dict(output_dict, 'waveform', batch_data_dict['waveform'])
