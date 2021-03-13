@@ -150,7 +150,8 @@ def train(args):
     evaluator = Evaluator(model=model)
     
     train_bgn_time = time.time()
-    best_recall = 0
+    torch.manual_seed(729720439)
+
     # Train on mini batches
     for batch_data_dict in train_loader:
 
@@ -173,20 +174,20 @@ def train(args):
                 logging.info('Validate f_score: {:.3f}'.format(statistics['f_score']))
                 logging.info('\n'+ str(statistics['cm']))
 
-                if statistics['recall']>0.7 and statistics['recall']>best_recall:
-                    best_recall = statistics['recall']
-                    #Save model
-                    checkpoint = {
-                        'iteration': iteration,
-                        'model': model.module.state_dict()}
+                # if statistics['recall']>0.7 and statistics['recall']>best_recall:
+                #     best_recall = statistics['recall']
+                #     #Save model
+                #     checkpoint = {
+                #         'iteration': iteration,
+                #         'model': model.module.state_dict()}
+                #
+                #     checkpoint_path = os.path.join(
+                #         checkpoints_dir, 'best_model.pth')
+                #
+                #     torch.save(checkpoint, checkpoint_path)
+                #     logging.info('Model saved to {}'.format(checkpoint_path))
 
-                    checkpoint_path = os.path.join(
-                        checkpoints_dir, 'best_model.pth')
-
-                    torch.save(checkpoint, checkpoint_path)
-                    logging.info('Model saved to {}'.format(checkpoint_path))
-
-        if iteration == 1400:
+        if iteration == 1700:
 
             _, output_dict = evaluator.evaluate(validate_loader)
 
