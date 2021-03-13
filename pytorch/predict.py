@@ -7,6 +7,7 @@ import argparse
 import time
 import logging
 import matplotlib.pyplot as plt
+import pandas as pd
 
 import torch
 import torch.nn as nn
@@ -63,44 +64,49 @@ def train(args):
     else:
         logging.info('Using CPU. Set --cuda flag to use GPU.')
 
-    # Model
-    Model = eval(model_type)
+    print('GPU number: {}'.format(torch.cuda.device_count()))
 
-    # TODO захардкодил classes num- это нехорошо
-    model = Model(sample_rate, window_size, hop_size, mel_bins, fmin, fmax,
-                  3, freeze_base)
 
-    # Statistics
-
-    if pretrain:
+    for i in range(4):
+        pretrained_checkpoint_path = '/home/den/workspaces/panns/checkpoints/interspeech_final/augmentation=none/batch_size=8/model_{}.pth'.format(i)
         logging.info('Load pretrained model from {}'.format(pretrained_checkpoint_path))
+
+        # Model
+        Model = eval(model_type)
+
+        # TODO захардкодил classes num- это нехорошо
+        model = Model(sample_rate, window_size, hop_size, mel_bins, fmin, fmax,
+                      3, freeze_base)
+
         model.load_from_pretrain(pretrained_checkpoint_path)
 
 
-    # Parallel
-    print('GPU number: {}'.format(torch.cuda.device_count()))
-    model = torch.nn.DataParallel(model)
+        # Parallel
+        model = torch.nn.DataParallel(model)
 
-    dataset = GtzanDataset()
+        dataset = GtzanDataset()
 
-    validate_sampler = EvaluateSampler(
-        hdf5_path=hdf5_path,
-        holdout_fold=holdout_fold,
-        batch_size=batch_size)
+        validate_sampler = EvaluateSampler(
+            hdf5_path=hdf5_path,
+            holdout_fold=holdout_fold,
+            batch_size=batch_size)
 
-    validate_loader = torch.utils.data.DataLoader(dataset=dataset,
-                                                  batch_sampler=validate_sampler, collate_fn=collate_fn,
-                                                  num_workers=num_workers, pin_memory=True)
-    if 'cuda' in device:
-        model.to(device)
+        validate_loader = torch.utils.data.DataLoader(dataset=dataset,
+                                                      batch_sampler=validate_sampler, collate_fn=collate_fn,
+                                                      num_workers=num_workers, pin_memory=True)
+        if 'cuda' in device:
+            model.to(device)
 
-    # Evaluator
-    evaluator = Evaluator(model=model)
+        # Evaluator
+        evaluator = Evaluator(model=model)
 
-    clipwise_output = evaluator.evaluate(validate_loader)
+        _, output_dict = evaluator.evaluate(validate_loader)
 
+        df = pd.DataFrame(columns=['filename', 0, 1, 2])
+        df.loc[:, 'filename'] = output_dict['audio_name']
+        df.loc[:, [0, 1, 2]] = np.vstack(output_dict['clipwise_output2'])
+        df.to_csv('/home/den/Documents/df_test_prob_{}.csv'.format(i), index=False, sep=',')
 
-    print('here')
 
 
 
