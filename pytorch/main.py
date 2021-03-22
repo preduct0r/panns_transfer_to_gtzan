@@ -63,7 +63,6 @@ def train(args):
     # hdf5_path = os.path.join(workspace, 'features', 'waveform.h5')
 
     checkpoints_dir = os.path.join(workspace, 'checkpoints', 'interspeech', 'augmentation={}'.format(augmentation),
-                                   'batch_size={}'.format(batch_size),
                                    )
     create_folder(checkpoints_dir)
 
@@ -172,7 +171,7 @@ def train(args):
                     logging.info('Validate f_score: {:.3f}'.format(statistics['f_score']))
                     logging.info('\n'+ str(statistics['cm']))
 
-                    if statistics['recall'] > best_recall and statistics['recall'] > 0.7:
+                    if statistics['recall'] > best_recall:# and statistics['recall'] > 0.7:
                         best_recall = statistics['recall']
                         with open('/home/den/Documents/random_search_mixup.txt', 'a') as f:
                             f.write('recall: {}\n'.format(statistics['recall']))
@@ -186,7 +185,7 @@ def train(args):
                                 'model': model.module.state_dict()}
 
                             checkpoint_path = os.path.join(
-                                checkpoints_dir, '{}_iterations.pth'.format(iteration))
+                                checkpoints_dir, 'best_model.pth'.format(iteration))
 
                             torch.save(checkpoint, checkpoint_path)
                             logging.info('Model saved to {}'.format(checkpoint_path))
