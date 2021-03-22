@@ -26,7 +26,7 @@ from evaluate import Evaluator
 # для воспроизводимости результатов
 # random.seed(0)
 np.random.seed(0)
-torch.manual_seed(729720439)
+torch.manual_seed(1000)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 os.environ["PYTHONHASHSEED"] = str(24)
@@ -57,8 +57,9 @@ def train(args):
     #TODO вернуть путь до полного набора обработанных данных
 
     # hdf5_path = os.path.join(workspace, 'features_emocon', 'iemocap_emo_waveform.h5')
-    hdf5_path = os.path.join(workspace, 'features_interspeech_final', 'interspeech_waveform.h5')
+    hdf5_path = os.path.join(workspace, 'features_interspeech', 'interspeech_waveform.h5')
     # hdf5_path = os.path.join(workspace, 'features', 'waveform.h5')
+
 
     checkpoints_dir = os.path.join(workspace, 'checkpoints', 'interspeech_final', 'augmentation={}'.format(augmentation),
                                    'batch_size={}'.format(batch_size),
@@ -150,6 +151,8 @@ def train(args):
     
     train_bgn_time = time.time()
     best_recall = 0
+    torch.manual_seed(360759337)
+
     # Train on mini batches
     for batch_data_dict in train_loader:
 
@@ -159,17 +162,27 @@ def train(args):
         # Evaluate
         # Save model
         if iteration % 100 == 0:
-            print(iteration)
-        if iteration % 1700 == 0 and iteration > 0:
-            checkpoint = {
-                'iteration': iteration,
-                'model': model.module.state_dict()}
+            logging.info('------------------------------------')
+            logging.info('Iteration: {}'.format(iteration))
 
-            checkpoint_path = os.path.join(
-                checkpoints_dir, '{}_iterations.pth'.format(iteration))
 
-            torch.save(checkpoint, checkpoint_path)
-            logging.info('Model saved to {}'.format(checkpoint_path))
+            statistics = evaluator.evaluate(validate_loader)
+            logging.info('Validate precision: {:.3f}'.format(statistics['precision']))
+            logging.info('Validate recall: {:.3f}'.format(statistics['recall']))
+            logging.info('Validate f_score: {:.3f}'.format(statistics['f_score']))
+            logging.info('\n' + str(statistics['cm']))
+
+        if iteration % 1500 == 0 and iteration > 0:
+            # checkpoint = {
+            #     'iteration': iteration,
+            #     'model': model.module.state_dict()}
+            #
+            # checkpoint_path = os.path.join(
+            #     checkpoints_dir, '{}_iterations.pth'.format(iteration))
+            #
+            # torch.save(checkpoint, checkpoint_path)
+            # logging.info('Model saved to {}'.format(checkpoint_path))
+            pass
 
         if 'mixup' in augmentation:
             batch_data_dict['mixup_lambda'] = mixup_augmenter.get_lambda(len(batch_data_dict['waveform']))
