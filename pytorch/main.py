@@ -158,7 +158,7 @@ def train(args):
             torch.cuda.empty_cache()
             # Evaluate
             if iteration % 100 == 0 and iteration > 0:
-                if iteration >7000:
+                if iteration >5000:
                     break
                 else:
                     logging.info('------------------------------------')
@@ -172,17 +172,33 @@ def train(args):
                     logging.info('Validate f_score: {:.3f}'.format(statistics['f_score']))
                     logging.info('\n'+ str(statistics['cm']))
 
-                    if statistics['recall'] > best_recall:
+                    if statistics['recall'] > best_recall and statistics['recall'] > 0.7:
                         best_recall = statistics['recall']
                         with open('/home/den/Documents/random_search_mixup.txt', 'a') as f:
                             f.write('recall: {}\n'.format(statistics['recall']))
                             f.write('precision: {}\n'.format(statistics['precision']))
                             f.write('fscore: {}\n'.format(statistics['f_score']))
-                            f.write('randint: {}\n'.format(num))
+                            f.write('seed: {}\n'.format(num))
                             f.write('iteration: {}\n\n\n'.format(iteration))
 
+                            checkpoint = {
+                                'iteration': iteration,
+                                'model': model.module.state_dict()}
 
+                            checkpoint_path = os.path.join(
+                                checkpoints_dir, '{}_iterations.pth'.format(iteration))
 
+                            torch.save(checkpoint, checkpoint_path)
+                            logging.info('Model saved to {}'.format(checkpoint_path))
+
+                            _, output_dict = evaluator.evaluate(validate_loader)
+
+                            df = pd.DataFrame(columns=['filename', 'label', 0, 1, 2])
+                            df.loc[:, 'filename'] = output_dict['audio_name']
+                            df.loc[:, 'label'] = output_dict['target']
+
+                            df.loc[:, [0, 1, 2]] = np.vstack(output_dict['clipwise_output2'])
+                            df.to_csv('/home/den/Documents/df_dev_prob.csv', index=False, sep=',')
 
             # if iteration == 1400:
             #
