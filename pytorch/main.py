@@ -28,7 +28,7 @@ from evaluate import Evaluator
 # для воспроизводимости результатов
 # random.seed(0)
 np.random.seed(0)
-torch.manual_seed(500)
+torch.manual_seed(1000)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 os.environ["PYTHONHASHSEED"] = str(24)
@@ -143,7 +143,7 @@ def train(args):
     evaluator = Evaluator(model=model)
     
     train_bgn_time = time.time()
-    best_mean = 0
+    best_recall = 0
     # Train on mini batches
     while True:
         num = random.randint(0, 1000000000)
@@ -172,15 +172,14 @@ def train(args):
                     logging.info('Validate f_score: {:.3f}'.format(statistics['f_score']))
                     logging.info('\n'+ str(statistics['cm']))
 
-                    cand_mean = (statistics['recall'] + statistics['precision'] + statistics['f_score']) / 3.
-                    if cand_mean > best_mean:
-                        best_mean = cand_mean
-                        with open('/home/den/Documents/random_search.txt', 'a') as f:
+                    if statistics['recall'] > best_recall:
+                        best_recall = statistics['recall']
+                        with open('/home/den/Documents/random_search_mixup.txt', 'a') as f:
                             f.write('recall: {}\n'.format(statistics['recall']))
                             f.write('precision: {}\n'.format(statistics['precision']))
                             f.write('fscore: {}\n'.format(statistics['f_score']))
                             f.write('randint: {}\n'.format(num))
-                            f.write('iteration: {}\n'.format(iteration))
+                            f.write('iteration: {}\n\n\n'.format(iteration))
 
 
 
