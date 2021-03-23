@@ -186,7 +186,7 @@ class Transfer_Cnn14(nn.Module):
 
     def load_from_pretrain(self, pretrained_checkpoint_path):
         checkpoint = torch.load(pretrained_checkpoint_path)
-        self.load_state_dict(checkpoint['model'])
+        self.base.load_state_dict(checkpoint['model'])
 
     def forward(self, input, mixup_lambda=None):
         """Input: (batch_size, data_length)
