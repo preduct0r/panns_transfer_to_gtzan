@@ -59,7 +59,7 @@ def train(args):
 
 
     for i in range(4):
-        try:
+        # try:
             hdf5_path = os.path.join(workspace, 'features_interspeech_march', 'interspeech_waveform_{}.h5'.format(i))
 
             checkpoints_dir = os.path.join(workspace, 'checkpoints', 'interspeech_march', 'augmentation={}'.format(augmentation))
@@ -85,25 +85,7 @@ def train(args):
             else:
                 logging.info('Using CPU. Set --cuda flag to use GPU.')
 
-            # Model
-            Model = eval(model_type)
 
-            #TODO захардкодил classes num- это нехорошо
-            model = Model(sample_rate, window_size, hop_size, mel_bins, fmin, fmax,
-                3, freeze_base)
-
-            # Statistics
-            statistics_container = StatisticsContainer(statistics_path)
-
-            if pretrain:
-                logging.info('Load pretrained model from {}'.format(pretrained_checkpoint_path))
-                model.load_from_pretrain(pretrained_checkpoint_path)
-
-            iteration = 0
-
-            # Parallel
-            print('GPU number: {}'.format(torch.cuda.device_count()))
-            model = torch.nn.DataParallel(model)
 
             dataset = GtzanDataset()
 
@@ -127,24 +109,45 @@ def train(args):
                 batch_sampler=validate_sampler, collate_fn=collate_fn,
                 num_workers=num_workers, pin_memory=True)
 
-            if 'cuda' in device:
-                model.to(device)
-
-            # Optimizer
-            optimizer = optim.Adam(model.parameters(), lr=learning_rate, betas=(0.9, 0.999),
-                eps=1e-09, weight_decay=0., amsgrad=True)
-
 
             if 'mixup' in augmentation:
                 mixup_augmenter = Mixup(mixup_alpha=1.)
 
-            # Evaluator
-            evaluator = Evaluator(model=model)
 
             start = time.time()
             time_passed = 0
             best_recall = 0.7
             while time_passed < 5400:
+                # Model
+                Model = eval(model_type)
+
+                # TODO захардкодил classes num- это нехорошо
+                model = Model(sample_rate, window_size, hop_size, mel_bins, fmin, fmax,
+                              3, freeze_base)
+
+                # Statistics
+                statistics_container = StatisticsContainer(statistics_path)
+
+                if pretrain:
+                    logging.info('Load pretrained model from {}'.format(pretrained_checkpoint_path))
+                    model.load_from_pretrain(pretrained_checkpoint_path)
+
+                iteration = 0
+
+                # Parallel
+                print('GPU number: {}'.format(torch.cuda.device_count()))
+                model = torch.nn.DataParallel(model)
+
+                if 'cuda' in device:
+                    model.to(device)
+
+                # Evaluator
+                evaluator = Evaluator(model=model)
+
+                # Optimizer
+                optimizer = optim.Adam(model.parameters(), lr=learning_rate, betas=(0.9, 0.999),
+                                       eps=1e-09, weight_decay=0., amsgrad=True)
+
                 num = random.randint(0, 1000000000)
                 torch.manual_seed(num)
                 # Train on mini batches
@@ -256,8 +259,8 @@ def train(args):
                     iteration += 1
                     time_passed = time.time() - start
 
-        except:
-            pass
+        # except:
+        #     pass
 
 
 if __name__ == '__main__':
