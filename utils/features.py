@@ -11,6 +11,7 @@ import math
 import re
 import random
 import pandas as pd
+from glob import glob
 
 import config, config_emocon, config_interspeech
 from utilities import create_folder, traverse_folder, float32_to_int16
@@ -58,25 +59,37 @@ def pack_audio_files_to_hdf5_interspeech(args):
     audio_names = audio_names_without_test
     audio_paths = audio_paths_without_test
     idxs = list(range(len(audio_names)))
-    random.shuffle(idxs)
 
 
 
-    for i in range(4):
-        packed_hdf5_path = os.path.join(workspace, 'features_interspeech_final', 'interspeech_waveform_{}.h5'.format(i))
+
+    for ii, fold_file in enumerate(glob('/home/den/workspaces/panns/folds_from_nastya/*.csv')):
+
+        packed_hdf5_path = os.path.join(workspace, 'features_interspeech_march', 'interspeech_waveform_{}.h5'.format(ii))
         create_folder(os.path.dirname(packed_hdf5_path))
 
         cur_audio_names, cur_audio_paths, targets, folds = [], [], [], []
-        dev_idxs = idxs[i*int(len(idxs)/4.):(i+1)*int(len(idxs)/4.)]
+        val_df = pd.read_csv(fold_file).loc[:,['filename', 'label']]
+        val_df['filename'] = [x +'.wav' for x in val_df['filename']]
+        temp = meta_df.loc[:,['filename', 'label']]
+        train_df = pd.concat([temp, val_df]).drop_duplicates(keep=False)
 
-        for idx in idxs:
-            targets.append(int(meta_df[meta_df.filename==audio_names[idx]].label))
-            cur_audio_names.append(audio_names[idx])
+
+
+        for _, row in train_df.iterrows():
+            targets.append(int(row[-1]))
+            cur_audio_names.append(row[-2])
+            idx = audio_names.index(row[-2])
             cur_audio_paths.append(audio_paths[idx])
-            if idx in dev_idxs:
-                folds.append('0')
-            else:
-                folds.append('1')
+            folds.append('1')
+
+        for _, row in val_df.iterrows():
+            targets.append(int(row[-1]))
+            cur_audio_names.append(row[-2])
+            idx = audio_names.index(row[-2])
+            cur_audio_paths.append(audio_paths[idx])
+            folds.append('0')
+
 
 
         meta_dict = {

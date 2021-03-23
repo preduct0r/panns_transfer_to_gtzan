@@ -7,6 +7,8 @@ import time
 import logging
 import matplotlib.pyplot as plt
 import pandas as pd
+import random
+from time import gmtime, strftime
 
 import torch
 import torch.nn as nn
@@ -55,183 +57,207 @@ def train(args):
     loss_func = get_loss_func(loss_type)
     pretrain = True if pretrained_checkpoint_path else False
 
-    #TODO вернуть путь до полного набора обработанных данных
 
     for i in range(4):
-        # hdf5_path = os.path.join(workspace, 'features_emocon', 'iemocap_emo_waveform.h5')
-        hdf5_path = os.path.join(workspace, 'features_interspeech_final', 'interspeech_waveform_{}.h5'.format(i))
-        # hdf5_path = os.path.join(workspace, 'features', 'waveform.h5')
+        try:
+            hdf5_path = os.path.join(workspace, 'features_interspeech_march', 'interspeech_waveform_{}.h5'.format(i))
 
-        checkpoints_dir = os.path.join(workspace, 'checkpoints', 'interspeech_final', 'augmentation={}'.format(augmentation),
-                                       'batch_size={}'.format(batch_size)
-                                       )
-        create_folder(checkpoints_dir)
+            checkpoints_dir = os.path.join(workspace, 'checkpoints', 'interspeech_march', 'augmentation={}'.format(augmentation))
 
-        statistics_path = os.path.join(workspace, 'statistics', filename,
-            'holdout_fold={}'.format(holdout_fold), model_type, 'pretrain={}'.format(pretrain),
-            'loss_type={}'.format(loss_type), 'augmentation={}'.format(augmentation),
-            'batch_size={}'.format(batch_size), 'freeze_base={}'.format(freeze_base),
-            'statistics.pickle')
-        create_folder(os.path.dirname(statistics_path))
+            create_folder(checkpoints_dir)
 
-        logs_dir = os.path.join(workspace, 'logs', filename,
-            'holdout_fold={}'.format(holdout_fold), model_type, 'pretrain={}'.format(pretrain),
-            'loss_type={}'.format(loss_type), 'augmentation={}'.format(augmentation),
-            'batch_size={}'.format(batch_size), 'freeze_base={}'.format(freeze_base))
-        create_logging(logs_dir, 'w')
-        logging.info(args)
+            statistics_path = os.path.join(workspace, 'statistics', filename,
+                'holdout_fold={}'.format(holdout_fold), model_type, 'pretrain={}'.format(pretrain),
+                'loss_type={}'.format(loss_type), 'augmentation={}'.format(augmentation),
+                'batch_size={}'.format(batch_size), 'freeze_base={}'.format(freeze_base),
+                'statistics.pickle')
+            create_folder(os.path.dirname(statistics_path))
 
-        if 'cuda' in device:
-            logging.info('Using GPU.')
-        else:
-            logging.info('Using CPU. Set --cuda flag to use GPU.')
+            logs_dir = os.path.join(workspace, 'logs', filename,
+                'holdout_fold={}'.format(holdout_fold), model_type, 'pretrain={}'.format(pretrain),
+                'loss_type={}'.format(loss_type), 'augmentation={}'.format(augmentation),
+                'batch_size={}'.format(batch_size), 'freeze_base={}'.format(freeze_base))
+            create_logging(logs_dir, 'w')
+            logging.info(args)
 
-        # Model
-        Model = eval(model_type)
-
-        #TODO захардкодил classes num- это нехорошо
-        model = Model(sample_rate, window_size, hop_size, mel_bins, fmin, fmax,
-            3, freeze_base)
-
-        # Statistics
-        statistics_container = StatisticsContainer(statistics_path)
-
-        if pretrain:
-            logging.info('Load pretrained model from {}'.format(pretrained_checkpoint_path))
-            model.load_from_pretrain(pretrained_checkpoint_path)
-
-        iteration = 0
-
-        # Parallel
-        print('GPU number: {}'.format(torch.cuda.device_count()))
-        model = torch.nn.DataParallel(model)
-
-        dataset = GtzanDataset()
-
-        # Data generator
-        train_sampler = TrainSampler(
-            hdf5_path=hdf5_path,
-            holdout_fold=holdout_fold,
-            batch_size=batch_size * 2 if 'mixup' in augmentation else batch_size)
-
-        validate_sampler = EvaluateSampler(
-            hdf5_path=hdf5_path,
-            holdout_fold=holdout_fold,
-            batch_size=batch_size)
-
-        # Data loader
-        train_loader = torch.utils.data.DataLoader(dataset=dataset,
-            batch_sampler=train_sampler, collate_fn=collate_fn,
-            num_workers=num_workers, pin_memory=True)
-
-        validate_loader = torch.utils.data.DataLoader(dataset=dataset,
-            batch_sampler=validate_sampler, collate_fn=collate_fn,
-            num_workers=num_workers, pin_memory=True)
-
-        if 'cuda' in device:
-            model.to(device)
-
-        # Optimizer
-        optimizer = optim.Adam(model.parameters(), lr=learning_rate, betas=(0.9, 0.999),
-            eps=1e-09, weight_decay=0., amsgrad=True)
-
-
-        if 'mixup' in augmentation:
-            mixup_augmenter = Mixup(mixup_alpha=1.)
-
-        # Evaluator
-        evaluator = Evaluator(model=model)
-
-        train_bgn_time = time.time()
-        best_recall = 0.6
-        torch.manual_seed(729720439)
-        # Train on mini batches
-        for batch_data_dict in train_loader:
-
-            # import crash
-            # asdf
-            torch.cuda.empty_cache()
-            # Evaluate
-            if iteration % 100 == 0 and iteration > 0:
-                if resume_iteration > 0 and iteration == resume_iteration:
-                    pass
-                else:
-                    logging.info('------------------------------------')
-                    logging.info('Iteration: {}'.format(iteration))
-
-                    train_fin_time = time.time()
-
-                statistics, _ = evaluator.evaluate(validate_loader)
-                logging.info('Validate precision: {:.3f}'.format(statistics['precision']))
-                logging.info('Validate recall: {:.3f}'.format(statistics['recall']))
-                logging.info('Validate f_score: {:.3f}'.format(statistics['f_score']))
-                logging.info('\n'+ str(statistics['cm']))
-
-                # statistics_container.append(iteration, statistics, 'validate')
-                # statistics_container.dump()
-
-                # train_time = train_fin_time - train_bgn_time
-                # validate_time = time.time() - train_fin_time
-                #
-                # logging.info(
-                #     'Train time: {:.3f} s, validate time: {:.3f} s'
-                #     ''.format(train_time, validate_time))
-                #
-                # train_bgn_time = time.time()
-
-                    # Save model
-                if iteration >= 1000 and statistics['recall'] > best_recall:
-                    best_recall = statistics['recall']
-                    checkpoint = {
-                        'iteration': iteration,
-                        'model': model.module.state_dict()}
-
-                    checkpoint_path = os.path.join(
-                        checkpoints_dir, 'model_{}.pth'.format(i))
-
-                    torch.save(checkpoint, checkpoint_path)
-                    logging.info('Model saved to {}'.format(checkpoint_path))
-
-
-            if 'mixup' in augmentation:
-                batch_data_dict['mixup_lambda'] = mixup_augmenter.get_lambda(len(batch_data_dict['waveform']))
-
-            # Move data to GPU
-            for key in batch_data_dict.keys():
-                batch_data_dict[key] = move_data_to_device(batch_data_dict[key], device)
-
-            # Train
-            model.train()
-
-            if 'mixup' in augmentation:
-                batch_output_dict = model(batch_data_dict['waveform'],
-                    batch_data_dict['mixup_lambda'])
-                """{'clipwise_output': (batch_size, classes_num), ...}"""
-
-                batch_target_dict = {'target': do_mixup(batch_data_dict['target'],
-                    batch_data_dict['mixup_lambda'])}
-                """{'target': (batch_size, classes_num)}"""
+            if 'cuda' in device:
+                logging.info('Using GPU.')
             else:
-                batch_output_dict = model(batch_data_dict['waveform'], None)
-                """{'clipwise_output': (batch_size, classes_num), ...}"""
+                logging.info('Using CPU. Set --cuda flag to use GPU.')
 
-                batch_target_dict = {'target': batch_data_dict['target']}
-                """{'target': (batch_size, classes_num)}"""
+            # Model
+            Model = eval(model_type)
 
-            # loss
-            loss = loss_func(batch_output_dict, batch_target_dict)
-            # print(iteration, loss)
+            #TODO захардкодил classes num- это нехорошо
+            model = Model(sample_rate, window_size, hop_size, mel_bins, fmin, fmax,
+                3, freeze_base)
 
-            # Backward
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+            # Statistics
+            statistics_container = StatisticsContainer(statistics_path)
 
-            # Stop learning
-            if iteration == stop_iteration:
-                break
+            if pretrain:
+                logging.info('Load pretrained model from {}'.format(pretrained_checkpoint_path))
+                model.load_from_pretrain(pretrained_checkpoint_path)
 
-            iteration += 1
+            iteration = 0
+
+            # Parallel
+            print('GPU number: {}'.format(torch.cuda.device_count()))
+            model = torch.nn.DataParallel(model)
+
+            dataset = GtzanDataset()
+
+            # Data generator
+            train_sampler = TrainSampler(
+                hdf5_path=hdf5_path,
+                holdout_fold=holdout_fold,
+                batch_size=batch_size * 2 if 'mixup' in augmentation else batch_size)
+
+            validate_sampler = EvaluateSampler(
+                hdf5_path=hdf5_path,
+                holdout_fold=holdout_fold,
+                batch_size=batch_size)
+
+            # Data loader
+            train_loader = torch.utils.data.DataLoader(dataset=dataset,
+                batch_sampler=train_sampler, collate_fn=collate_fn,
+                num_workers=num_workers, pin_memory=True)
+
+            validate_loader = torch.utils.data.DataLoader(dataset=dataset,
+                batch_sampler=validate_sampler, collate_fn=collate_fn,
+                num_workers=num_workers, pin_memory=True)
+
+            if 'cuda' in device:
+                model.to(device)
+
+            # Optimizer
+            optimizer = optim.Adam(model.parameters(), lr=learning_rate, betas=(0.9, 0.999),
+                eps=1e-09, weight_decay=0., amsgrad=True)
+
+
+            if 'mixup' in augmentation:
+                mixup_augmenter = Mixup(mixup_alpha=1.)
+
+            # Evaluator
+            evaluator = Evaluator(model=model)
+
+            start = time.time()
+            time_passed = 0
+            best_recall = 0.7
+            while time_passed < 5400:
+                num = random.randint(0, 1000000000)
+                torch.manual_seed(num)
+                # Train on mini batches
+                for batch_data_dict in train_loader:
+
+                    # import crash
+                    # asdf
+                    torch.cuda.empty_cache()
+                    # Evaluate
+                    if iteration % 100 == 0 and iteration > 0:
+                        if resume_iteration > 0 and iteration == resume_iteration:
+                            pass
+                        else:
+                            logging.info('------------------------------------')
+                            logging.info('Iteration: {}'.format(iteration))
+
+                            train_fin_time = time.time()
+
+                        statistics, _ = evaluator.evaluate(validate_loader)
+                        logging.info('Validate precision: {:.3f}'.format(statistics['precision']))
+                        logging.info('Validate recall: {:.3f}'.format(statistics['recall']))
+                        logging.info('Validate f_score: {:.3f}'.format(statistics['f_score']))
+                        logging.info('\n'+ str(statistics['cm']))
+
+                        # statistics_container.append(iteration, statistics, 'validate')
+                        # statistics_container.dump()
+
+                        # train_time = train_fin_time - train_bgn_time
+                        # validate_time = time.time() - train_fin_time
+                        #
+                        # logging.info(
+                        #     'Train time: {:.3f} s, validate time: {:.3f} s'
+                        #     ''.format(train_time, validate_time))
+                        #
+                        # train_bgn_time = time.time()
+
+                            # Save model
+                        if iteration >= 1000 and statistics['recall'] > best_recall:
+                            best_recall = statistics['recall']
+                            checkpoint = {
+                                'iteration': iteration,
+                                'model': model.module.state_dict()}
+
+                            checkpoint_path = os.path.join(
+                                checkpoints_dir, 'model_{}.pth'.format(i))
+
+                            torch.save(checkpoint, checkpoint_path)
+                            logging.info('Model saved to {}'.format(checkpoint_path))
+
+                            _, output_dict = evaluator.evaluate(validate_loader)
+
+                            with open('/home/den/Documents/random_search_march.txt', 'a') as f:
+                                f.write('FOLD: {}\n'.format(str(i)))
+                                f.write('Current time: {}\n'.format(strftime("%Y-%m-%d %H:%M:%S", gmtime())))
+                                f.write('recall: {}\n'.format(statistics['recall']))
+                                f.write('precision: {}\n'.format(statistics['precision']))
+                                f.write('fscore: {}\n'.format(statistics['f_score']))
+                                f.write('seed: {}\n'.format(num))
+                                f.write('iteration: {}\n\n\n'.format(iteration))
+
+
+                            df = pd.DataFrame(columns=['filename', 'label', 0, 1, 2])
+                            df.loc[:, 'filename'] = output_dict['audio_name']
+                            df.loc[:, 'label'] = output_dict['target']
+
+                            df.loc[:, [0, 1, 2]] = np.vstack(output_dict['clipwise_output2'])
+                            df.to_csv('/home/den/Documents/devs_march/df_dev_prob_{}.csv'.format(str(i)), index=False, sep=',')
+
+
+
+                    if 'mixup' in augmentation:
+                        batch_data_dict['mixup_lambda'] = mixup_augmenter.get_lambda(len(batch_data_dict['waveform']))
+
+                    # Move data to GPU
+                    for key in batch_data_dict.keys():
+                        batch_data_dict[key] = move_data_to_device(batch_data_dict[key], device)
+
+                    # Train
+                    model.train()
+
+                    if 'mixup' in augmentation:
+                        batch_output_dict = model(batch_data_dict['waveform'],
+                            batch_data_dict['mixup_lambda'])
+                        """{'clipwise_output': (batch_size, classes_num), ...}"""
+
+                        batch_target_dict = {'target': do_mixup(batch_data_dict['target'],
+                            batch_data_dict['mixup_lambda'])}
+                        """{'target': (batch_size, classes_num)}"""
+                    else:
+                        batch_output_dict = model(batch_data_dict['waveform'], None)
+                        """{'clipwise_output': (batch_size, classes_num), ...}"""
+
+                        batch_target_dict = {'target': batch_data_dict['target']}
+                        """{'target': (batch_size, classes_num)}"""
+
+                    # loss
+                    loss = loss_func(batch_output_dict, batch_target_dict)
+                    # print(iteration, loss)
+
+                    # Backward
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
+
+                    # Stop learning
+                    if iteration == stop_iteration:
+                        break
+
+                    iteration += 1
+                    time_passed = time.time() - start
+
+        except:
+            pass
 
 
 if __name__ == '__main__':
