@@ -58,7 +58,7 @@ def train(args):
     pretrain = True if pretrained_checkpoint_path else False
 
 
-    for i in range(4):
+    for i in range(3,4):
         # try:
             hdf5_path = os.path.join(workspace, 'features_interspeech_march', 'interspeech_waveform_{}.h5'.format(i))
 

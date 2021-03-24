@@ -68,13 +68,12 @@ def train(args):
 
 
     for i in range(4):
-        pretrained_checkpoint_path = '/home/den/workspaces/panns/checkpoints/interspeech_final/augmentation=none/batch_size=8/model_{}.pth'.format(i)
+        pretrained_checkpoint_path = '/home/den/workspaces/panns/checkpoints/interspeech_march/augmentation=mixup/model_{}.pth'.format(i)
         logging.info('Load pretrained model from {}'.format(pretrained_checkpoint_path))
 
         # Model
         Model = eval(model_type)
 
-        # TODO захардкодил classes num- это нехорошо
         model = Model(sample_rate, window_size, hop_size, mel_bins, fmin, fmax,
                       3, freeze_base)
 
@@ -105,7 +104,7 @@ def train(args):
         df = pd.DataFrame(columns=['filename', 0, 1, 2])
         df.loc[:, 'filename'] = output_dict['audio_name']
         df.loc[:, [0, 1, 2]] = np.vstack(output_dict['clipwise_output2'])
-        df.to_csv('/home/den/Documents/df_test_prob_{}.csv'.format(i), index=False, sep=',')
+        df.to_csv('/home/den/Documents/test_march/df_test_prob_{}.csv'.format(i), index=False, sep=',')
 
 
 
