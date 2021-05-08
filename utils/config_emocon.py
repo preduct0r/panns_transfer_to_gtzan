@@ -1,4 +1,4 @@
-sample_rate = 32000
+sample_rate = 8000
 clip_samples = sample_rate * 5
 
 mel_bins = 64
