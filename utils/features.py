@@ -30,7 +30,7 @@ def pad_truncate_sequence(x, max_len):
 
 
 
-def pack_audio_files_to_hdf5_iemocap(args):
+def pack_audio_files_to_hdf5_ramas(args):
     # Arguments & parameters
     dataset_dir = args.dataset_dir
     workspace = args.workspace
@@ -45,9 +45,9 @@ def pack_audio_files_to_hdf5_iemocap(args):
     audios_dir = os.path.join(dataset_dir)
 
     if mini_data:
-        packed_hdf5_path = os.path.join(workspace, 'features_emocon', 'minidata_waveform.h5')
+        packed_hdf5_path = os.path.join(workspace, 'features_ramas', 'minidata_waveform.h5')
     else:
-        packed_hdf5_path = os.path.join(workspace, 'features_emocon', 'waveform.h5')
+        packed_hdf5_path = os.path.join(workspace, 'features_ramas', 'waveform.h5')
     create_folder(os.path.dirname(packed_hdf5_path))
 
     (audio_names, audio_paths) = traverse_folder(audios_dir)
@@ -55,16 +55,15 @@ def pack_audio_files_to_hdf5_iemocap(args):
     # audio_names = sorted(audio_names)
     # audio_paths = sorted(audio_paths)
 
-    meta_df = pd.read_csv('/home/den/datasets/experiments/emocon_mult/meta.csv', sep=';')
-    meta_train_df = pd.read_csv('/home/den/datasets/experiments/emocon_mult/meta_train.csv', sep=';')
+    meta_df = pd.read_csv('/home/den/DATASETS/preprocessed/ramas/meta.csv', sep=',')
+    meta_train_df = pd.read_csv('/home/den/DATASETS/preprocessed/ramas/meta_train.csv', sep=',')
     train_names = list(meta_train_df.cur_name)
-
 
 
     meta_dict = {
         'audio_name': np.array(audio_names),
         'audio_path': np.array(audio_paths),
-        'target': np.array([int(meta_df[meta_df.cur_name==audio_name].arvalmix) for audio_name in audio_names]),
+        'target': np.array([int(meta_df[meta_df.cur_name==audio_name].cur_label) for audio_name in audio_names]),
         'fold': np.array([0 if audio_name in train_names else 1 for audio_name in audio_names])}
 
     if mini_data:
