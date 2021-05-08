@@ -36,10 +36,10 @@ def pack_audio_files_to_hdf5_ramas(args):
     workspace = args.workspace
     mini_data = args.mini_data
 
-    sample_rate = config_emocon.sample_rate
-    clip_samples = config_emocon.clip_samples
-    classes_num = config_emocon.classes_num
-    lb_to_idx = config_emocon.lb_to_idx
+    sample_rate = config.sample_rate
+    clip_samples = config.clip_samples
+    classes_num = config.classes_num
+    lb_to_idx = config.lb_to_idx
 
     # Paths
     audios_dir = os.path.join(dataset_dir)
@@ -50,12 +50,17 @@ def pack_audio_files_to_hdf5_ramas(args):
         packed_hdf5_path = os.path.join(workspace, 'features_ramas', 'waveform.h5')
     create_folder(os.path.dirname(packed_hdf5_path))
 
-    (audio_names, audio_paths) = traverse_folder(audios_dir)
+    # (audio_names, audio_paths) = traverse_folder(audios_dir)
+
 
     # audio_names = sorted(audio_names)
     # audio_paths = sorted(audio_paths)
 
     meta_df = pd.read_csv('/home/den/DATASETS/preprocessed/ramas/meta.csv', sep=',')
+    audio_names = list(meta_df[meta_df.cur_label.isin(['hap', 'ang', 'neu', 'sad'])].cur_name)
+    audio_paths = [os.path.join('/home/den/DATASETS/preprocessed/ramas/data', audio_name) for audio_name in audio_names]
+
+
     meta_train_df = pd.read_csv('/home/den/DATASETS/preprocessed/ramas/meta_train.csv', sep=',')
     train_names = list(meta_train_df.cur_name)
 
@@ -63,7 +68,7 @@ def pack_audio_files_to_hdf5_ramas(args):
     meta_dict = {
         'audio_name': np.array(audio_names),
         'audio_path': np.array(audio_paths),
-        'target': np.array([int(meta_df[meta_df.cur_name==audio_name].cur_label) for audio_name in audio_names]),
+        'target': np.array([lb_to_idx[list(meta_df[meta_df.cur_name==audio_name].cur_label)[0]] for audio_name in audio_names]),
         'fold': np.array([0 if audio_name in train_names else 1 for audio_name in audio_names])}
 
     if mini_data:
@@ -119,12 +124,6 @@ def pack_audio_files_to_hdf5_ramas(args):
 if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='')
-    # subparsers = parser.add_subparsers(dest='mode')
-
-
-    # Calculate feature for all audio files
-    # parser_pack_audio = subparsers.add_parser('pack_audio_files_to_hdf5')
-    # parser_pack_audio = subparsers.add_parser('pack_audio_files_to_hdf5_emocon')
 
     parser.add_argument('--dataset_dir', type=str, required=True, help='Directory of dataset.')
     parser.add_argument('--workspace', type=str, required=True, help='Directory of your workspace.')
@@ -132,9 +131,6 @@ if __name__ == '__main__':
     
     # Parse arguments
     args = parser.parse_args()
-    
 
-    pack_audio_files_to_hdf5_iemocap(args)
+    pack_audio_files_to_hdf5_ramas(args)
 
-
-    # raise Exception('Incorrect arguments!')
