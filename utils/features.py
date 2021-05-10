@@ -30,7 +30,7 @@ def pad_truncate_sequence(x, max_len):
 
 
 
-def pack_audio_files_to_hdf5_ramas(args):
+def pack_audio_files_to_hdf5_iemocap(args):
     # Arguments & parameters
     dataset_dir = args.dataset_dir
     workspace = args.workspace
@@ -45,9 +45,9 @@ def pack_audio_files_to_hdf5_ramas(args):
     audios_dir = os.path.join(dataset_dir)
 
     if mini_data:
-        packed_hdf5_path = os.path.join(workspace, 'features_ramas', 'minidata_waveform.h5')
+        packed_hdf5_path = os.path.join(workspace, 'features_iemocap', 'minidata_waveform.h5')
     else:
-        packed_hdf5_path = os.path.join(workspace, 'features_ramas', 'waveform.h5')
+        packed_hdf5_path = os.path.join(workspace, 'features_iemocap', 'waveform.h5')
     create_folder(os.path.dirname(packed_hdf5_path))
 
     # (audio_names, audio_paths) = traverse_folder(audios_dir)
@@ -56,12 +56,12 @@ def pack_audio_files_to_hdf5_ramas(args):
     # audio_names = sorted(audio_names)
     # audio_paths = sorted(audio_paths)
 
-    meta_df = pd.read_csv('/home/den/DATASETS/preprocessed/ramas/meta.csv', sep=',')
+    meta_df = pd.read_csv('/home/den/DATASETS/preprocessed/iemocap/meta.csv', sep=';')
     audio_names = list(meta_df[meta_df.cur_label.isin(['hap', 'ang', 'neu', 'sad'])].cur_name)
-    audio_paths = [os.path.join('/home/den/DATASETS/preprocessed/ramas/data', audio_name) for audio_name in audio_names]
+    audio_paths = [os.path.join('/home/den/DATASETS/preprocessed/iemocap/data', audio_name) for audio_name in audio_names]
 
 
-    meta_train_df = pd.read_csv('/home/den/DATASETS/preprocessed/ramas/meta_train.csv', sep=',')
+    meta_train_df = pd.read_csv('/home/den/DATASETS/preprocessed/iemocap/meta_train.csv', sep=';')
     train_names = list(meta_train_df.cur_name)
 
 
@@ -132,5 +132,5 @@ if __name__ == '__main__':
     # Parse arguments
     args = parser.parse_args()
 
-    pack_audio_files_to_hdf5_ramas(args)
+    pack_audio_files_to_hdf5_iemocap(args)
 
