@@ -188,7 +188,7 @@ def train(args):
                     'model': model.module.state_dict()}
 
                 checkpoint_path = os.path.join(
-                    checkpoints_dir, '{}_iterations.pth'.format(iteration))
+                    checkpoints_dir, 'checkpoint.pth')
 
                 torch.save(checkpoint, checkpoint_path)
                 logging.info('Model saved to {}'.format(checkpoint_path))
