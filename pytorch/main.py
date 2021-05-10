@@ -60,6 +60,7 @@ def train(args):
     #TODO вернуть путь до полного набора обработанных данных
 
     hdf5_path = os.path.join(workspace, 'features_iemocap', 'waveform.h5')
+    hdf5_path_ramas = os.path.join(workspace, 'features_ramas', 'waveform.h5')
     # hdf5_path = os.path.join(workspace, 'features', 'waveform.h5')
 
     checkpoints_dir = os.path.join(workspace, 'checkpoints', filename, 
@@ -124,7 +125,7 @@ def train(args):
         batch_size=batch_size * 2 if 'mixup' in augmentation else batch_size)
 
     validate_sampler = EvaluateSampler(
-        hdf5_path=hdf5_path, 
+        hdf5_path=hdf5_path_ramas,
         holdout_fold=holdout_fold, 
         batch_size=batch_size)
 
@@ -181,7 +182,7 @@ def train(args):
 
         # Save model
 
-            if statistics['recall'] > 0.62 and best_recall < statistics['recall']:
+            if statistics['f_score'] > 0.4 and best_recall < statistics['recall']:
                 checkpoint = {
                     'iteration': iteration,
                     'model': model.module.state_dict()}
