@@ -58,7 +58,7 @@ def forward(model, generator, return_input=False,
 
     # Forward data to a model in mini-batches
     for n, batch_data_dict in enumerate(generator):
-        print(n)
+        # print(n)
         batch_waveform = move_data_to_device(batch_data_dict['waveform'], device)
         
         with torch.no_grad():
@@ -69,7 +69,10 @@ def forward(model, generator, return_input=False,
 
         append_to_dict(output_dict, 'clipwise_output', 
             batch_output['clipwise_output'].data.cpu().numpy())
-            
+
+        append_to_dict(output_dict, 'clipwise_output2',
+                       batch_output['clipwise_output2'].data.cpu().numpy())
+
         if return_input:
             append_to_dict(output_dict, 'waveform', batch_data_dict['waveform'])
             

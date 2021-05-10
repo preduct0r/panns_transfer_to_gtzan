@@ -6,6 +6,9 @@ import argparse
 import time
 import logging
 import matplotlib.pyplot as plt
+import pandas as pd
+import random
+from time import gmtime, strftime
 
 import torch
 import torch.nn as nn
@@ -21,6 +24,15 @@ from utilities import (create_folder, get_filename, create_logging, StatisticsCo
 from data_generator import GtzanDataset, TrainSampler, EvaluateSampler, collate_fn
 from models import Transfer_Cnn14
 from evaluate import Evaluator
+
+
+# для воспроизводимости результатов
+# random.seed(0)
+np.random.seed(0)
+torch.manual_seed(500)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+os.environ["PYTHONHASHSEED"] = str(24)
 
 
 def train(args):
@@ -118,7 +130,7 @@ def train(args):
 
     # Data loader
     train_loader = torch.utils.data.DataLoader(dataset=dataset, 
-        batch_sampler=train_sampler, collate_fn=collate_fn, 
+        batch_sampler=train_sampler, collate_fn=collate_fn,
         num_workers=num_workers, pin_memory=True)
 
     validate_loader = torch.utils.data.DataLoader(dataset=dataset, 
@@ -140,7 +152,8 @@ def train(args):
     evaluator = Evaluator(model=model)
     
     train_bgn_time = time.time()
-    
+    torch.manual_seed(729720439)
+
     # Train on mini batches
     for batch_data_dict in train_loader:
 
@@ -157,32 +170,25 @@ def train(args):
 
                 train_fin_time = time.time()
 
-                statistics = evaluator.evaluate(validate_loader)
-                logging.info('Validate accuracy: {:.3f}'.format(statistics['accuracy']))
-
-                statistics_container.append(iteration, statistics, 'validate')
-                statistics_container.dump()
-
-                train_time = train_fin_time - train_bgn_time
-                validate_time = time.time() - train_fin_time
-
-                logging.info(
-                    'Train time: {:.3f} s, validate time: {:.3f} s'
-                    ''.format(train_time, validate_time))
+                statistics, _ = evaluator.evaluate(validate_loader)
+                logging.info('Validate precision: {:.3f}'.format(statistics['precision']))
+                logging.info('Validate recall: {:.3f}'.format(statistics['recall']))
+                logging.info('Validate f_score: {:.3f}'.format(statistics['f_score']))
+                logging.info('\n'+ str(statistics['cm']))
 
                 train_bgn_time = time.time()
 
         # Save model 
-        if iteration % 2000 == 0 and iteration > 0:
-            checkpoint = {
-                'iteration': iteration, 
-                'model': model.module.state_dict()}
-
-            checkpoint_path = os.path.join(
-                checkpoints_dir, '{}_iterations.pth'.format(iteration))
-                
-            torch.save(checkpoint, checkpoint_path)
-            logging.info('Model saved to {}'.format(checkpoint_path))
+        # if iteration % 2000 == 0 and iteration > 0:
+        #     checkpoint = {
+        #         'iteration': iteration,
+        #         'model': model.module.state_dict()}
+        #
+        #     checkpoint_path = os.path.join(
+        #         checkpoints_dir, '{}_iterations.pth'.format(iteration))
+        #
+        #     torch.save(checkpoint, checkpoint_path)
+        #     logging.info('Model saved to {}'.format(checkpoint_path))
         
         if 'mixup' in augmentation:
             batch_data_dict['mixup_lambda'] = mixup_augmenter.get_lambda(len(batch_data_dict['waveform']))
@@ -211,7 +217,7 @@ def train(args):
 
         # loss
         loss = loss_func(batch_output_dict, batch_target_dict)
-        print(iteration, loss)
+        # print(iteration, loss)
 
         # Backward
         optimizer.zero_grad()
@@ -223,7 +229,7 @@ def train(args):
             break 
 
         iteration += 1
-        
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Example of parser. ')
