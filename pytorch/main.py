@@ -80,7 +80,7 @@ def train(args):
 
     #TODO захардкодил classes num- это нехорошо
     model = Model(sample_rate, window_size, hop_size, mel_bins, fmin, fmax, 
-        9, freeze_base)
+        4, freeze_base)
 
     # Statistics
     statistics_container = StatisticsContainer(statistics_path)
