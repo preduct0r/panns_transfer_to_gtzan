@@ -150,6 +150,7 @@ def train(args):
      
     # Evaluator
     evaluator = Evaluator(model=model)
+    best_recall = 0
     
     train_bgn_time = time.time()
     torch.manual_seed(729720439)
@@ -178,17 +179,19 @@ def train(args):
 
                 train_bgn_time = time.time()
 
-        # Save model 
-        # if iteration % 2000 == 0 and iteration > 0:
-        #     checkpoint = {
-        #         'iteration': iteration,
-        #         'model': model.module.state_dict()}
-        #
-        #     checkpoint_path = os.path.join(
-        #         checkpoints_dir, '{}_iterations.pth'.format(iteration))
-        #
-        #     torch.save(checkpoint, checkpoint_path)
-        #     logging.info('Model saved to {}'.format(checkpoint_path))
+        # Save model
+
+            if statistics['recall'] > 0.62 and best_recall < statistics['recall']:
+                checkpoint = {
+                    'iteration': iteration,
+                    'model': model.module.state_dict()}
+
+                checkpoint_path = os.path.join(
+                    checkpoints_dir, '{}_iterations.pth'.format(iteration))
+
+                torch.save(checkpoint, checkpoint_path)
+                logging.info('Model saved to {}'.format(checkpoint_path))
+                best_recall = statistics['recall']
         
         if 'mixup' in augmentation:
             batch_data_dict['mixup_lambda'] = mixup_augmenter.get_lambda(len(batch_data_dict['waveform']))
