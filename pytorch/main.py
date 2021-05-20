@@ -61,10 +61,7 @@ def train(args):
 
     hdf5_path = os.path.join(workspace, 'features_ramas', 'waveform_meta_train.h5')
 
-    checkpoints_dir = os.path.join(workspace, 'checkpoints', filename, 
-        'holdout_fold={}'.format(holdout_fold), model_type, 'pretrain={}'.format(pretrain), 
-        'loss_type={}'.format(loss_type), 'augmentation={}'.format(augmentation),
-         'batch_size={}'.format(batch_size), 'freeze_base={}'.format(freeze_base))
+    checkpoints_dir = os.path.join(workspace, 'checkpoints')
     create_folder(checkpoints_dir)
 
     statistics_path = os.path.join(workspace, 'statistics', filename, 
@@ -153,7 +150,7 @@ def train(args):
     train_bgn_time = time.time()
     torch.manual_seed(729720439)
     #TODO поставь адекватное значение
-    best_score = 0.53
+    best_score = 0.62
 
 
     # Train on mini batches
@@ -182,18 +179,16 @@ def train(args):
 
             # Save model
             if statistics['f_score'] > best_score:
-                print(best_score)
-                print(iteration)
-                # best_score = statistics['f_score']
-                # checkpoint = {
-                #     'iteration': iteration,
-                #     'model': model.module.state_dict()}
-                #
-                # checkpoint_path = os.path.join(
-                #     checkpoints_dir, 'best_model_audio.pth')
-                #
-                # torch.save(checkpoint, checkpoint_path)
-                # logging.info('Model saved to {}'.format(checkpoint_path))
+                best_score = statistics['f_score']
+                checkpoint = {
+                    'iteration': iteration,
+                    'model': model.module.state_dict()}
+
+                checkpoint_path = os.path.join(
+                    checkpoints_dir, 'best_model_audio.pth')
+
+                torch.save(checkpoint, checkpoint_path)
+                logging.info('Model saved to {}'.format(checkpoint_path))
         
         if 'mixup' in augmentation:
             batch_data_dict['mixup_lambda'] = mixup_augmenter.get_lambda(len(batch_data_dict['waveform']))
