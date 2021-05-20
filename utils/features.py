@@ -11,8 +11,9 @@ import math
 import re
 import random
 import pandas as pd
+from sklearn.model_selection import train_test_split
 
-import config, config_emocon
+import config
 from utilities import create_folder, traverse_folder, float32_to_int16
 
 
@@ -47,7 +48,7 @@ def pack_audio_files_to_hdf5_ramas(args):
     if mini_data:
         packed_hdf5_path = os.path.join(workspace, 'features_ramas', 'minidata_waveform.h5')
     else:
-        packed_hdf5_path = os.path.join(workspace, 'features_ramas', 'waveform.h5')
+        packed_hdf5_path = os.path.join(workspace, 'features_ramas', 'waveform_meta_train.h5')
     create_folder(os.path.dirname(packed_hdf5_path))
 
     # (audio_names, audio_paths) = traverse_folder(audios_dir)
@@ -56,20 +57,20 @@ def pack_audio_files_to_hdf5_ramas(args):
     # audio_names = sorted(audio_names)
     # audio_paths = sorted(audio_paths)
 
-    meta_df = pd.read_csv('/home/den/DATASETS/preprocessed/ramas/meta.csv', sep=',')
-    audio_names = list(meta_df[meta_df.cur_label.isin(['hap', 'ang', 'neu', 'sad'])].cur_name)
-    audio_paths = [os.path.join('/home/den/DATASETS/preprocessed/ramas/data', audio_name) for audio_name in audio_names]
+    meta_df = pd.read_csv('/home/den/DATASETS/AUDIO/preprocessed/ramas/meta_train.csv', sep=',')
+    meta_df = meta_df[meta_df.cur_label.isin(['hap', 'ang', 'neu', 'sad'])]
+    # train_names, val_names, y_train, y_val = train_test_split(meta_df.cur_name, meta_df.cur_label, test_size = 0.25, random_state = 42)
+    train_names = meta_df[meta_df['init_name'].str.startswith('19')].cur_name.tolist()
 
-
-    meta_train_df = pd.read_csv('/home/den/DATASETS/preprocessed/ramas/meta_train.csv', sep=',')
-    train_names = list(meta_train_df.cur_name)
+    audio_names = list(meta_df.cur_name)
+    audio_paths = [os.path.join('/home/den/DATASETS/AUDIO/preprocessed/ramas/data', audio_name) for audio_name in audio_names]
 
 
     meta_dict = {
         'audio_name': np.array(audio_names),
         'audio_path': np.array(audio_paths),
         'target': np.array([lb_to_idx[list(meta_df[meta_df.cur_name==audio_name].cur_label)[0]] for audio_name in audio_names]),
-        'fold': np.array([0 if audio_name in train_names else 1 for audio_name in audio_names])}
+        'fold': np.array([1 if audio_name in train_names else 0 for audio_name in audio_names])}
 
     if mini_data:
         mini_num = 10

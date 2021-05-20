@@ -59,8 +59,7 @@ def train(args):
 
     #TODO вернуть путь до полного набора обработанных данных
 
-    hdf5_path = os.path.join(workspace, 'features_ramas', 'waveform.h5')
-    # hdf5_path = os.path.join(workspace, 'features', 'waveform.h5')
+    hdf5_path = os.path.join(workspace, 'features_ramas', 'waveform_meta_train.h5')
 
     checkpoints_dir = os.path.join(workspace, 'checkpoints', filename, 
         'holdout_fold={}'.format(holdout_fold), model_type, 'pretrain={}'.format(pretrain), 
@@ -153,6 +152,9 @@ def train(args):
     
     train_bgn_time = time.time()
     torch.manual_seed(729720439)
+    #TODO поставь адекватное значение
+    best_score = 0.53
+
 
     # Train on mini batches
     for batch_data_dict in train_loader:
@@ -161,7 +163,7 @@ def train(args):
         # asdf
         torch.cuda.empty_cache()
         # Evaluate
-        if iteration % 100 == 0 and iteration > 0:
+        if iteration % 100 == 0 :
             if resume_iteration > 0 and iteration == resume_iteration:
                 pass
             else:
@@ -178,17 +180,20 @@ def train(args):
 
                 train_bgn_time = time.time()
 
-        # Save model 
-        # if iteration % 2000 == 0 and iteration > 0:
-        #     checkpoint = {
-        #         'iteration': iteration,
-        #         'model': model.module.state_dict()}
-        #
-        #     checkpoint_path = os.path.join(
-        #         checkpoints_dir, '{}_iterations.pth'.format(iteration))
-        #
-        #     torch.save(checkpoint, checkpoint_path)
-        #     logging.info('Model saved to {}'.format(checkpoint_path))
+            # Save model
+            if statistics['f_score'] > best_score:
+                print(best_score)
+                print(iteration)
+                # best_score = statistics['f_score']
+                # checkpoint = {
+                #     'iteration': iteration,
+                #     'model': model.module.state_dict()}
+                #
+                # checkpoint_path = os.path.join(
+                #     checkpoints_dir, 'best_model_audio.pth')
+                #
+                # torch.save(checkpoint, checkpoint_path)
+                # logging.info('Model saved to {}'.format(checkpoint_path))
         
         if 'mixup' in augmentation:
             batch_data_dict['mixup_lambda'] = mixup_augmenter.get_lambda(len(batch_data_dict['waveform']))
