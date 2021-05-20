@@ -59,7 +59,7 @@ def train(args):
 
     #TODO вернуть путь до полного набора обработанных данных
 
-    hdf5_path = os.path.join(workspace, 'features_ramas', 'waveform_meta_train.h5')
+    hdf5_path = os.path.join(workspace, 'features_ramas', 'waveform_meta_train_all.h5')
 
     checkpoints_dir = os.path.join(workspace, 'checkpoints')
     create_folder(checkpoints_dir)
@@ -119,18 +119,9 @@ def train(args):
         holdout_fold=holdout_fold, 
         batch_size=batch_size * 2 if 'mixup' in augmentation else batch_size)
 
-    validate_sampler = EvaluateSampler(
-        hdf5_path=hdf5_path, 
-        holdout_fold=holdout_fold, 
-        batch_size=batch_size)
-
     # Data loader
     train_loader = torch.utils.data.DataLoader(dataset=dataset, 
         batch_sampler=train_sampler, collate_fn=collate_fn,
-        num_workers=num_workers, pin_memory=True)
-
-    validate_loader = torch.utils.data.DataLoader(dataset=dataset, 
-        batch_sampler=validate_sampler, collate_fn=collate_fn, 
         num_workers=num_workers, pin_memory=True)
 
     if 'cuda' in device:
@@ -140,7 +131,6 @@ def train(args):
     optimizer = optim.Adam(model.parameters(), lr=learning_rate, betas=(0.9, 0.999),
         eps=1e-09, weight_decay=0., amsgrad=True)
 
-    
     if 'mixup' in augmentation:
         mixup_augmenter = Mixup(mixup_alpha=1.)
      
@@ -149,46 +139,9 @@ def train(args):
     
     train_bgn_time = time.time()
     torch.manual_seed(729720439)
-    #TODO поставь адекватное значение
-    best_score = 0.62
-
 
     # Train on mini batches
     for batch_data_dict in train_loader:
-
-        # import crash
-        # asdf
-        torch.cuda.empty_cache()
-        # Evaluate
-        if iteration % 100 == 0 :
-            if resume_iteration > 0 and iteration == resume_iteration:
-                pass
-            else:
-                logging.info('------------------------------------')
-                logging.info('Iteration: {}'.format(iteration))
-
-                train_fin_time = time.time()
-
-                statistics, _ = evaluator.evaluate(validate_loader)
-                logging.info('Validate precision: {:.3f}'.format(statistics['precision']))
-                logging.info('Validate recall: {:.3f}'.format(statistics['recall']))
-                logging.info('Validate f_score: {:.3f}'.format(statistics['f_score']))
-                logging.info('\n'+ str(statistics['cm']))
-
-                train_bgn_time = time.time()
-
-            # Save model
-            if statistics['f_score'] > best_score:
-                best_score = statistics['f_score']
-                checkpoint = {
-                    'iteration': iteration,
-                    'model': model.module.state_dict()}
-
-                checkpoint_path = os.path.join(
-                    checkpoints_dir, 'best_model_audio.pth')
-
-                torch.save(checkpoint, checkpoint_path)
-                logging.info('Model saved to {}'.format(checkpoint_path))
         
         if 'mixup' in augmentation:
             batch_data_dict['mixup_lambda'] = mixup_augmenter.get_lambda(len(batch_data_dict['waveform']))
@@ -226,6 +179,16 @@ def train(args):
 
         # Stop learning
         if iteration == stop_iteration:
+            # Save model
+            checkpoint = {
+                'iteration': iteration,
+                'model': model.module.state_dict()}
+
+            checkpoint_path = os.path.join(
+                checkpoints_dir, 'best_model_audio_all.pth')
+
+            torch.save(checkpoint, checkpoint_path)
+            logging.info('Model saved to {}'.format(checkpoint_path))
             break 
 
         iteration += 1

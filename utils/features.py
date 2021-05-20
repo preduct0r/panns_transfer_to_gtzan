@@ -48,7 +48,7 @@ def pack_audio_files_to_hdf5_ramas(args):
     if mini_data:
         packed_hdf5_path = os.path.join(workspace, 'features_ramas', 'minidata_waveform.h5')
     else:
-        packed_hdf5_path = os.path.join(workspace, 'features_ramas', 'waveform_meta_train.h5')
+        packed_hdf5_path = os.path.join(workspace, 'features_ramas', 'waveform_meta_train_all.h5')
     create_folder(os.path.dirname(packed_hdf5_path))
 
     # (audio_names, audio_paths) = traverse_folder(audios_dir)
@@ -70,7 +70,7 @@ def pack_audio_files_to_hdf5_ramas(args):
         'audio_name': np.array(audio_names),
         'audio_path': np.array(audio_paths),
         'target': np.array([lb_to_idx[list(meta_df[meta_df.cur_name==audio_name].cur_label)[0]] for audio_name in audio_names]),
-        'fold': np.array([1 if audio_name in train_names else 0 for audio_name in audio_names])}
+        'fold': np.array([0 for audio_name in audio_names])}
 
     if mini_data:
         mini_num = 10
